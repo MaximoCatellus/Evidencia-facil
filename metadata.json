@@ -1,0 +1,6 @@
+{
+  "name": "EvidenciaFácil - Democratizador de E-Discovery",
+  "description": "Plataforma de E-Discovery para estructuración cronológica procesal de hechos, detección de contradicciones y vacíos probatorios a partir de capturas, documentos y contratos con IA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
