@@ -8,7 +8,8 @@ import {
   FileSearch,
   Sparkles,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Scale
 } from "lucide-react";
 import { Header } from "./components/Header";
 import { UploadZone } from "./components/UploadZone";
@@ -17,6 +18,7 @@ import { TimelineView } from "./components/TimelineView";
 import { EvidenceMatrix } from "./components/EvidenceMatrix";
 import { ContradictionsView } from "./components/ContradictionsView";
 import { EvidentiaryGapsView } from "./components/EvidentiaryGapsView";
+import { BayesianGraphView } from "./components/BayesianGraphView";
 import { ExportBar } from "./components/ExportBar";
 import { DocumentModal } from "./components/DocumentModal";
 import { PrintReport } from "./components/PrintReport";
@@ -31,7 +33,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"timeline" | "matrix" | "contradictions" | "gaps">("timeline");
+  const [activeTab, setActiveTab] = useState<"timeline" | "matrix" | "contradictions" | "gaps" | "bayesian">("timeline");
   const [selectedEventModal, setSelectedEventModal] = useState<TimelineEvent | null>(null);
   const [warningNotice, setWarningNotice] = useState<string | null>(null);
 
@@ -318,6 +320,24 @@ export default function App() {
                 <ShieldQuestion className="w-4 h-4" />
                 <span>Vacíos Probatorios ({analysis.vacios_probatorios.length})</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("bayesian")}
+                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+                  activeTab === "bayesian"
+                    ? "border-blue-600 text-blue-700 bg-blue-50/40"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <Scale className="w-4 h-4 text-blue-600" />
+                <span>
+                  Evaluación Bayesiana {analysis.red_bayesiana?.evidencias ? `(${analysis.red_bayesiana.evidencias.length})` : ""}
+                </span>
+                <span className="text-[10px] bg-blue-100 text-blue-800 font-mono px-1.5 py-0.2 rounded-full">
+                  P(H|E)
+                </span>
+              </button>
             </div>
 
             {/* Tab Views */}
@@ -342,6 +362,10 @@ export default function App() {
 
               {activeTab === "gaps" && (
                 <EvidentiaryGapsView gaps={analysis.vacios_probatorios} />
+              )}
+
+              {activeTab === "bayesian" && (
+                <BayesianGraphView network={analysis.red_bayesiana} />
               )}
             </div>
 

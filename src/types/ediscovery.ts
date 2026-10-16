@@ -51,6 +51,54 @@ export interface EvidentiaryGap {
   prioridad: "Alta" | "Media" | "Baja";
 }
 
+export type BayesianEvidenceState = "presente" | "ausente" | "desconocida";
+
+export interface BayesianEvidenceNode {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  fuente_documental: string;
+  cita_clave: string;
+  probabilidad_si_hipotesis_cierta: number; // P(E|H) e.g. 0.85
+  probabilidad_si_hipotesis_falsa: number;  // P(E|~H) e.g. 0.15
+  justificacion_probabilistica: string;
+  estado_observado: BayesianEvidenceState;
+}
+
+export interface BayesianHypothesis {
+  id: string;
+  descripcion: string;
+  estado_positivo: string;
+  estado_negativo: string;
+  probabilidad_a_priori: number; // P(H) e.g. 0.50
+  fundamentacion_previa: string;
+}
+
+export interface BayesianNetworkTopology {
+  hipotesis: BayesianHypothesis;
+  evidencias: BayesianEvidenceNode[];
+  tesis_probatoria: string;
+}
+
+export interface BayesianCalculatedNode extends BayesianEvidenceNode {
+  razon_verosimilitud: number; // Likelihood Ratio (LR)
+  peso_evidencia_db: number;   // Weight of evidence in decibans: 10 * log10(LR)
+  direccion_apoyo: "favorece_hipotesis" | "desfavorece_hipotesis" | "neutro";
+  fuerza_probatoria: "Concluyente" | "Fuerte" | "Moderada" | "Débil" | "Inapreciable";
+}
+
+export interface BayesianInferenceResult {
+  probabilidad_a_posteriori: number; // P(H|E)
+  probabilidad_a_priori: number;     // P(H)
+  odds_a_priori: number;
+  odds_a_posteriori: number;
+  factor_bayes_global: number;
+  peso_probatorio_total_db: number;
+  estandar_probatorio_alcanzado: string;
+  nivel_certeza: "Muy Alto" | "Alto" | "Preponderante" | "Insuficiente";
+  nodos: BayesianCalculatedNode[];
+}
+
 export interface AnalysisMetadata {
   total_documentos: number;
   calidad_evidencia: string;
@@ -62,6 +110,7 @@ export interface AnalysisResult {
   cronologia: TimelineEvent[];
   contradicciones: Contradiction[];
   vacios_probatorios: EvidentiaryGap[];
+  red_bayesiana?: BayesianNetworkTopology;
   recomendaciones_legales: string[];
   metadata_analisis: AnalysisMetadata;
 }
@@ -76,3 +125,4 @@ export interface UploadedFile {
   textContent?: string;
   category?: "chat" | "email" | "contract" | "receipt" | "other";
 }
+

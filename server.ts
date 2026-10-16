@@ -163,6 +163,14 @@ function generateTailoredAnalysis(files: EvidenceFilePayload[], caseContext: str
     caseTitle = `Expediente Probatorio E-Discovery: ${baseNames.slice(0, 3).join(" · ")}`;
   }
 
+  const contextLower = `${caseContext} ${fileNames.join(" ")}`.toLowerCase();
+  const isLaborCase =
+    contextLower.includes("laboral") ||
+    contextLower.includes("despido") ||
+    contextLower.includes("trabaj") ||
+    contextLower.includes("sueldo") ||
+    contextLower.includes("horas");
+
   // Extract dates, parties, and facts from file texts
   const extractedEvents: any[] = [];
   const identifiedPartiesMap = new Map<string, { rol: string; detalles: string }>();
@@ -349,6 +357,30 @@ function generateTailoredAnalysis(files: EvidenceFilePayload[], caseContext: str
     cronologia: extractedEvents,
     contradicciones: contradictions,
     vacios_probatorios: gaps,
+    red_bayesiana: {
+      hipotesis: {
+        id: "H-PRINCIPAL",
+        descripcion: isLaborCase
+          ? "El despido fue injustificado y vulneró los derechos laborales del trabajador"
+          : `Incumplimiento contractual y procedencia de la pretensión indemnizatoria (${caseTitle})`,
+        estado_positivo: isLaborCase ? "Despido Injustificado / Nulo" : "Incumplimiento Acreditado",
+        estado_negativo: isLaborCase ? "Despido Procedente / Justificado" : "Obligación Inexistente o Cumplida",
+        probabilidad_a_priori: 0.50,
+        fundamentacion_previa: "Punto de partida neutral (50%) conforme al principio de imparcialidad judicial y distribución objetiva de la carga probatoria."
+      },
+      evidencias: extractedEvents.slice(0, 5).map((ev, idx) => ({
+        id: `E-${idx + 1}`,
+        nombre: ev.hecho.length > 55 ? ev.hecho.slice(0, 52) + "..." : ev.hecho,
+        descripcion: ev.analisis_procesal || ev.hecho,
+        fuente_documental: ev.fuente_documental,
+        cita_clave: ev.cita_o_referencia || ev.hecho,
+        probabilidad_si_hipotesis_cierta: 0.85,
+        probabilidad_si_hipotesis_falsa: 0.15,
+        justificacion_probabilistica: "Fuerte correlación indiciaria y alta verosimilitud de aparición en supuestos de veracidad de la hipótesis.",
+        estado_observado: "presente" as const
+      })),
+      tesis_probatoria: "La convergencia armónica de soportes documentales y la ausencia de contraprueba sustentan una convicción judicial preponderante."
+    },
     recomendaciones_legales: [
       `Preservar copias exactas de los ${files.length} archivos para asegurar la cadena de custodia.`,
       `Incorporar la cronología procesal y citas textuales en los hechos de la demanda o contestación.`
@@ -469,6 +501,30 @@ Debes responder ÚNICAMENTE con un objeto JSON válido (sin bloques de código m
       "prioridad": "Alta"
     }
   ],
+  "red_bayesiana": {
+    "hipotesis": {
+      "id": "H-001",
+      "descripcion": "Hipótesis fáctica o pretensión procesal central",
+      "estado_positivo": "Acreditado / Estimación",
+      "estado_negativo": "Desestimado / No acreditado",
+      "probabilidad_a_priori": 0.50,
+      "fundamentacion_previa": "Punto de partida neutral (50%)"
+    },
+    "evidencias": [
+      {
+        "id": "E-001",
+        "nombre": "Nombre descriptivo del indicio probatorio",
+        "descripcion": "Explicación del hecho que demuestra este indicio",
+        "fuente_documental": "Archivo donde consta",
+        "cita_clave": "\\"Cita literal del mensaje o documento\\"",
+        "probabilidad_si_hipotesis_cierta": 0.85,
+        "probabilidad_si_hipotesis_falsa": 0.15,
+        "justificacion_probabilistica": "Fuerza indiciaria pericial",
+        "estado_observado": "presente"
+      }
+    ],
+    "tesis_probatoria": "Tesis procesal global fundamentada en los indicios"
+  },
   "recomendaciones_legales": ["Recomendación procesal 1", "Recomendación procesal 2"],
   "metadata_analisis": {
     "total_documentos": ${files.length},

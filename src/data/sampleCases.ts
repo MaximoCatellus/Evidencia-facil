@@ -201,6 +201,63 @@ Tal como te informé verbalmente la semana pasada en terreno, tuvimos que reforz
           prioridad: "Alta"
         }
       ],
+      red_bayesiana: {
+        hipotesis: {
+          id: "H-DISPUTA",
+          descripcion: "Constructora Delta incurrió en abandono doloso/culpable y procede la cláusula penal de $15,000 USD",
+          estado_positivo: "Abandono Culpable / Cláusula Penal Procedente",
+          estado_negativo: "Prórroga Consentida / Fuerza Mayor (Sin Penalidad)",
+          probabilidad_a_priori: 0.50,
+          fundamentacion_previa: "Punto de partida neutral (50%) garantizando la carga probatoria equitativa entre comitente y contratista."
+        },
+        evidencias: [
+          {
+            id: "E-001",
+            nombre: "Autorización de Prórroga en WhatsApp por Gerente de Operaciones",
+            descripcion: "Mensaje del 12/04/2024 de Rodrigo Morales autorizando 25 días adicionales por fuerza mayor aduanera.",
+            fuente_documental: "WhatsApp_Chat_Rodrigo_Valentina_Abril.png",
+            cita_clave: "'No hay problema con los 25 días adicionales considerando que es fuerza mayor por la aduana.'",
+            probabilidad_si_hipotesis_cierta: 0.05,
+            probabilidad_si_hipotesis_falsa: 0.92,
+            justificacion_probabilistica: "Es sumamente improbable (5%) que existiera abandono culposo cuando el propio comitente consintió formalmente la extensión del plazo en el chat.",
+            estado_observado: "presente"
+          },
+          {
+            id: "E-002",
+            nombre: "Carta Notarial Resolutoria imputando abandono sin aviso",
+            descripcion: "Requerimiento notarial del 28/08/2024 declarando resolución unilateral y exigencia de penalidad de $15,000 USD.",
+            fuente_documental: "Carta_Notarial_Resolucion_Agosto.pdf",
+            cita_clave: "'...verificándose un abandono doloso e injustificado de las obras a partir del 15 de mayo de 2024 sin que mediara aviso ni justificación alguna...'",
+            probabilidad_si_hipotesis_cierta: 0.90,
+            probabilidad_si_hipotesis_falsa: 0.20,
+            justificacion_probabilistica: "Típica manifestación formal del comitente al imputar incumplimiento, aunque contradicha por sus propios actos precedentes.",
+            estado_observado: "presente"
+          },
+          {
+            id: "E-003",
+            nombre: "Contrato Marco con fijación estricta de 120 días y cláusula penal",
+            descripcion: "Contrato firmado del 15/01/2024 estipulando penalidad compensatoria no acumulable de $15,000 USD.",
+            fuente_documental: "Contrato_Marco_Remodelacion_2024.pdf",
+            cita_clave: "'En caso de mora culpable o abandono injustificado de faena, se fija una cláusula penal compensatoria no acumulable de $15,000 USD.'",
+            probabilidad_si_hipotesis_cierta: 0.80,
+            probabilidad_si_hipotesis_falsa: 0.50,
+            justificacion_probabilistica: "Fija el marco obligacional y la sanción si se acreditara la culpabilidad.",
+            estado_observado: "presente"
+          },
+          {
+            id: "E-004",
+            nombre: "Reclamo de Obras Adicionales de Refuerzo Estructural ($8,200 USD)",
+            descripcion: "Correo del 05/06/2024 comunicando refuerzo de vigas por grietas preexistentes y suspensión condicionada al pago.",
+            fuente_documental: "Email_Reclamo_Adicionales_Junio.txt",
+            cita_clave: "'...tuvimos que reforzar las vigas de soporte de la sala de servidores debido a grietas preexistentes en su losa...'",
+            probabilidad_si_hipotesis_cierta: 0.25,
+            probabilidad_si_hipotesis_falsa: 0.80,
+            justificacion_probabilistica: "Acredita que la paralización no fue intempestiva ni furtiva sino originada en un diferendo por costos imprevistos de seguridad estructural.",
+            estado_observado: "presente"
+          }
+        ],
+        tesis_probatoria: "La prueba documental electrónica desvirtúa la hipótesis de abandono intempestivo al existir autorización expresa de prórroga por actos propios del acreedor."
+      },
       recomendaciones_legales: [
         "Aportar la conversación de WhatsApp como principio de prueba por escrito para oponerse a la ejecución de la cláusula penal.",
         "Solicitar con carácter de medida prejudicial preparatoria la exhibición de las cámaras de seguridad del inmueble para refutar el abandono en mayo de 2024.",
@@ -328,6 +385,52 @@ Por medio de la presente, la gerencia de Recursos Humanos le notifica su desvinc
           prioridad: "Alta"
         }
       ],
+      red_bayesiana: {
+        hipotesis: {
+          id: "H-LABORAL",
+          descripcion: "El despido de Esteban Ríos fue fraudulento y en represalia tras laborar horas extraordinarias no remuneradas",
+          estado_positivo: "Despido Injustificado / Causal Simulada en Represalia",
+          estado_negativo: "Despido Justificado por Bajo Rendimiento Real",
+          probabilidad_a_priori: 0.50,
+          fundamentacion_previa: "Presunción de indemnidad laboral y distribución de la carga de probar el incumplimiento grave sobre el empleador."
+        },
+        evidencias: [
+          {
+            id: "E-101",
+            nombre: "Instrucción de Turno Extraordinario Obligatorio en Fin de Semana con Promesa de Bono",
+            descripcion: "Mensaje de WhatsApp del 06/07/2024 donde el supervisor ordena acudir en sábado y domingo prometiendo pago fuera de nómina.",
+            fuente_documental: "WhatsApp_Supervisor_Turnos_FinDeSemana.png",
+            cita_clave: "'Esteban, necesitamos que vengas mañana sábado de 8am a 6pm y el domingo de 9am a 3pm... esas horas van anotadas aparte con bono.'",
+            probabilidad_si_hipotesis_cierta: 0.95,
+            probabilidad_si_hipotesis_falsa: 0.10,
+            justificacion_probabilistica: "Muy alta probabilidad (95%) de despido fraudulento al demostrarse imposición de jornada ilegal fuera de registro.",
+            estado_observado: "presente"
+          },
+          {
+            id: "E-102",
+            nombre: "Reconocimiento Expreso de Rendimiento Sobresaliente al Término del Turno",
+            descripcion: "Mensaje de felicitación del 07/07/2024 calificando el trabajo como 'excelente' y al '100%'.",
+            fuente_documental: "WhatsApp_Supervisor_Turnos_FinDeSemana.png",
+            cita_clave: "'Quedó excelente el inventario, sacamos el 100%. Buen trabajo.'",
+            probabilidad_si_hipotesis_cierta: 0.90,
+            probabilidad_si_hipotesis_falsa: 0.05,
+            justificacion_probabilistica: "Virtualmente incompatible (5%) con una causal coetánea y verídica de bajo rendimiento técnico.",
+            estado_observado: "presente"
+          },
+          {
+            id: "E-103",
+            nombre: "Carta de Despido Invocando 'Bajo Rendimiento y Negativa a Colaborar'",
+            descripcion: "Comunicación de Recursos Humanos del 31/07/2024 invocando causal subjetiva sin antecedentes disciplinarios previos.",
+            fuente_documental: "Carta_Despido_Bajo_Rendimiento.pdf",
+            cita_clave: "'...constatándose negligencia reiterada, bajo rendimiento y negativa injustificada a colaborar...'",
+            probabilidad_si_hipotesis_cierta: 0.92,
+            probabilidad_si_hipotesis_falsa: 0.70,
+            justificacion_probabilistica: "Instrumento formal de materialización de la represalia empresarial.",
+            estado_observado: "presente"
+          }
+        ],
+        tesis_probatoria: "La contradicción directa entre los elogios contemporáneos del supervisor directo y la carta posterior de despido evidencia simulación de causal con altísima certeza estadística."
+      },
       recomendaciones_legales: [
         "Presentar reclamo ante la Inspección del Trabajo aportando de inmediato la transcripción certificada del chat.",
         "Solicitar la aplicación de la sanción de nulidad de despido o indemnización agravada por tutela de derechos fundamentales si el despido se produjo luego de exigir el pago del bono prometido.",

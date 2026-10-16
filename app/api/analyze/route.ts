@@ -116,6 +116,53 @@ const legalAnalysisSchema = {
         required: ["id", "descripcion", "hecho_o_periodo_afectado", "riesgo_procesal", "diligencia_o_prueba_sugerida", "prioridad"]
       }
     },
+    red_bayesiana: {
+      type: Type.OBJECT,
+      properties: {
+        hipotesis: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING },
+            descripcion: { type: Type.STRING },
+            estado_positivo: { type: Type.STRING },
+            estado_negativo: { type: Type.STRING },
+            probabilidad_a_priori: { type: Type.NUMBER },
+            fundamentacion_previa: { type: Type.STRING }
+          },
+          required: ["id", "descripcion", "estado_positivo", "estado_negativo", "probabilidad_a_priori", "fundamentacion_previa"]
+        },
+        evidencias: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              nombre: { type: Type.STRING },
+              descripcion: { type: Type.STRING },
+              fuente_documental: { type: Type.STRING },
+              cita_clave: { type: Type.STRING },
+              probabilidad_si_hipotesis_cierta: { type: Type.NUMBER },
+              probabilidad_si_hipotesis_falsa: { type: Type.NUMBER },
+              justificacion_probabilistica: { type: Type.STRING },
+              estado_observado: { type: Type.STRING }
+            },
+            required: [
+              "id",
+              "nombre",
+              "descripcion",
+              "fuente_documental",
+              "cita_clave",
+              "probabilidad_si_hipotesis_cierta",
+              "probabilidad_si_hipotesis_falsa",
+              "justificacion_probabilistica",
+              "estado_observado"
+            ]
+          }
+        },
+        tesis_probatoria: { type: Type.STRING }
+      },
+      required: ["hipotesis", "evidencias", "tesis_probatoria"]
+    },
     recomendaciones_legales: {
       type: Type.ARRAY,
       items: { type: Type.STRING }
@@ -130,7 +177,15 @@ const legalAnalysisSchema = {
       required: ["total_documentos", "calidad_evidencia", "alerta_integridad"]
     }
   },
-  required: ["resumen_caso", "cronologia", "contradicciones", "vacios_probatorios", "recomendaciones_legales", "metadata_analisis"]
+  required: [
+    "resumen_caso",
+    "cronologia",
+    "contradicciones",
+    "vacios_probatorios",
+    "red_bayesiana",
+    "recomendaciones_legales",
+    "metadata_analisis"
+  ]
 };
 
 export async function POST(request: Request) {
@@ -164,13 +219,24 @@ export async function POST(request: Request) {
 
     const parts: any[] = [];
 
-    const systemPrompt = `Actúa como un perito forense digital y analista procesal de E-Discovery judicial.
+    const systemPrompt = `Actúa como un perito forense digital y analista procesal de E-Discovery judicial experto en modelado probabilístico de la prueba.
 Tu cometido es analizar minuciosamente los documentos proporcionados (capturas de chats de WhatsApp, Telegram, emails, contratos, comprobantes de pago o recibos bancarios).
 
 INSTRUCCIONES PERICIALES DE OCR Y EXTRACCIÓN:
 1. Para cada captura de pantalla o imagen de chat: realiza OCR completo, identifica quién escribe (izquierda/derecha), fecha y hora exacta visible (ej. "10:14 a. m."), y transcribe cada mensaje textual relevante en 'cita_o_referencia' con comillas literales ("...").
 2. Está estrictamente prohibido emitir respuestas genéricas tipo placeholder ("Soporte probatorio...", "Aportación probatoria del soporte visual..."). Debes extraer el contenido real visible.
 3. Detecta contradicciones entre versiones y vacíos probatorios precisos recomendando diligencias concretas.
+
+MODELADO PROBATORIO CON REDES BAYESIANAS (TOPOLOGÍA CAUSAL):
+Como perito, debes estructurar la incertidumbre del caso definiendo la red bayesiana probatoria:
+1. Hipótesis Principal (H): Define la proposición central del litigio (ej. "El despido fue injustificado por represalia laboral" o "Existió incumplimiento de contrato por impago").
+   - Define su estado positivo y negativo, y una probabilidad a priori P(H) neutral (ej. 0.50 como punto de partida sin sesgo procesal).
+2. Nodos de Evidencia (E1, E2, ...): Extrae cada prueba documental relevante como un nodo independiente de evidencia que apunta causalmente hacia la hipótesis.
+   - 'probabilidad_si_hipotesis_cierta': P(E | H) — Estimación condicional: ¿Con qué probabilidad esperaríamos ver esta prueba si la hipótesis fuera cierta? (ej. 0.85 si es muy típica).
+   - 'probabilidad_si_hipotesis_falsa': P(E | ~H) — Estimación condicional: ¿Con qué probabilidad veríamos esta prueba si la hipótesis fuera falsa / inocencia? (ej. 0.15 si es rara por azar).
+   - 'estado_observado': "presente" (si consta acreditada en el expediente), "ausente" o "desconocida".
+   - 'justificacion_probabilistica': Explicación técnico-jurídica de la fuerza indiciaria de la prueba.
+   - NOTA CRÍTICA: NO calcules la probabilidad a posteriori final P(H|E); de eso se encarga el motor determinista de TypeScript en el cliente mediante el Teorema de Bayes para evitar alucinaciones.
 
 ${caseContext ? `Contexto del caso aportado por el litigante:\n"${caseContext}"\n` : ""}`;
 
