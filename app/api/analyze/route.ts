@@ -163,6 +163,34 @@ const legalAnalysisSchema = {
       },
       required: ["hipotesis", "evidencias", "tesis_probatoria"]
     },
+    esquema_argumental: {
+      type: Type.OBJECT,
+      properties: {
+        conclusion_principal: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING },
+            afirmacion: { type: Type.STRING }
+          },
+          required: ["id", "afirmacion"]
+        },
+        premisas: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              premisa: { type: Type.STRING },
+              hecho_vinculado_id: { type: Type.STRING },
+              soporte_documental: { type: Type.STRING }
+            },
+            required: ["id", "premisa"]
+          }
+        },
+        garantia_inferencia: { type: Type.STRING }
+      },
+      required: ["conclusion_principal", "premisas", "garantia_inferencia"]
+    },
     recomendaciones_legales: {
       type: Type.ARRAY,
       items: { type: Type.STRING }
@@ -183,6 +211,7 @@ const legalAnalysisSchema = {
     "contradicciones",
     "vacios_probatorios",
     "red_bayesiana",
+    "esquema_argumental",
     "recomendaciones_legales",
     "metadata_analisis"
   ]

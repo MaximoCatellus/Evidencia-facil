@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Clock,
   Table as TableIcon,
@@ -9,7 +9,9 @@ import {
   Sparkles,
   CheckCircle2,
   RefreshCw,
-  Scale
+  Scale,
+  GitFork,
+  Database
 } from "lucide-react";
 import { Header } from "./components/Header";
 import { UploadZone } from "./components/UploadZone";
@@ -19,11 +21,13 @@ import { EvidenceMatrix } from "./components/EvidenceMatrix";
 import { ContradictionsView } from "./components/ContradictionsView";
 import { EvidentiaryGapsView } from "./components/EvidentiaryGapsView";
 import { BayesianGraphView } from "./components/BayesianGraphView";
+import { ArgumentGraphView } from "./components/ArgumentGraphView";
 import { ExportBar } from "./components/ExportBar";
 import { DocumentModal } from "./components/DocumentModal";
 import { PrintReport } from "./components/PrintReport";
 import { UploadedFile, AnalysisResult, TimelineEvent } from "./types/ediscovery";
 import { SAMPLE_CASES } from "./data/sampleCases";
+import { sortAndNormalizeChronology, detectEvidentiaryGaps } from "./lib/chronologyEngine";
 
 export default function App() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -33,9 +37,35 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"timeline" | "matrix" | "contradictions" | "gaps" | "bayesian">("timeline");
+  const [activeTab, setActiveTab] = useState<
+    "timeline" | "matrix" | "contradictions" | "gaps" | "bayesian" | "arguments"
+  >("timeline");
   const [selectedEventModal, setSelectedEventModal] = useState<TimelineEvent | null>(null);
   const [warningNotice, setWarningNotice] = useState<string | null>(null);
+  const [isRestoredFromLocal, setIsRestoredFromLocal] = useState(false);
+
+  // Restore analysis from localStorage on initial page load (Zero DB, Zero API cost on reload)
+  useEffect(() => {
+    try {
+      const cachedAnalysis = localStorage.getItem("ediscovery_current_analysis");
+      const cachedFiles = localStorage.getItem("ediscovery_uploaded_files");
+      const cachedContext = localStorage.getItem("ediscovery_case_context");
+
+      if (cachedAnalysis) {
+        const parsed = JSON.parse(cachedAnalysis);
+        setAnalysis(parsed);
+        setIsRestoredFromLocal(true);
+        if (cachedFiles) {
+          setFiles(JSON.parse(cachedFiles));
+        }
+        if (cachedContext) {
+          setCaseContext(cachedContext);
+        }
+      }
+    } catch (e) {
+      console.warn("No fue posible restaurar desde localStorage:", e);
+    }
+  }, []);
 
   // Load a pre-configured sample case
   const handleLoadSample = (caseId: string) => {
@@ -48,10 +78,11 @@ export default function App() {
     setActiveCaseId(caseId);
     setError(null);
     setWarningNotice(null);
+    setIsRestoredFromLocal(false);
     setActiveTab("timeline");
   };
 
-  // Start fresh analysis
+  // Start fresh analysis (clears localStorage)
   const handleNewAnalysis = () => {
     setFiles([]);
     setCaseContext("");
@@ -59,16 +90,22 @@ export default function App() {
     setActiveCaseId(undefined);
     setError(null);
     setWarningNotice(null);
+    setIsRestoredFromLocal(false);
+    try {
+      localStorage.removeItem("ediscovery_current_analysis");
+      localStorage.removeItem("ediscovery_uploaded_files");
+      localStorage.removeItem("ediscovery_case_context");
+    } catch {}
   };
 
   // Handle file additions or deletions
   const handleFilesChange = (newFiles: UploadedFile[]) => {
     setFiles(newFiles);
-    // If user changes files, clear the previous analysis so results always match current files
     setAnalysis(null);
     setActiveCaseId(undefined);
     setError(null);
     setWarningNotice(null);
+    setIsRestoredFromLocal(false);
     if (newFiles.length === 0) {
       setCaseContext("");
     }
@@ -82,7 +119,7 @@ export default function App() {
     setLoadingStep("Extrayendo texto y analizando soportes probatorios con OCR...");
     setError(null);
     setWarningNotice(null);
-    setAnalysis(null); // Clear previous analysis immediately
+    setAnalysis(null);
 
     try {
       const payloadFiles = files.map((f) => ({
@@ -95,7 +132,6 @@ export default function App() {
 
       setLoadingStep("Gemini AI realizando lectura OCR y estructuración procesal...");
 
-      // Ensure stale sample context does not leak into user's own new files
       const isSampleFileSet = files.some((f) => f.id.startsWith("cf-") || f.id.startsWith("lab-"));
       let effectiveContext = caseContext.trim();
       if (!isSampleFileSet && (effectiveContext.toLowerCase().includes("los robles") || effectiveContext.toLowerCase().includes("constructora delta"))) {
@@ -117,7 +153,6 @@ export default function App() {
       try {
         data = JSON.parse(responseText);
       } catch {
-        // Handle non-JSON responses from Vercel (e.g. 504 Gateway Timeout or server errors)
         if (
           res.status === 504 ||
           responseText.includes("TIMEOUT") ||
@@ -137,8 +172,47 @@ export default function App() {
         throw new Error(data?.error || "Error al procesar el expediente probatorio.");
       }
 
-      setLoadingStep("Estructurando cronología judicial...");
-      setAnalysis(data.data);
+      setLoadingStep("Estructurando cronología judicial y calculando vacíos probatorios...");
+
+      // ALGORITMO DETERMINISTA EN CLIENTE (lib/chronologyEngine.ts):
+      // 1. Ordenación cronológica exacta en JavaScript nativo
+      const sortedEvents = sortAndNormalizeChronology(data.data.cronologia || []);
+
+      // 2. Detección automática de vacíos probatorios (silencio > 30 días) sin llamadas a la API
+      const detectedGaps = detectEvidentiaryGaps(sortedEvents, 30);
+
+      const mergedGaps = [...(data.data.vacios_probatorios || [])];
+      detectedGaps.forEach((dg: any) => {
+        if (!mergedGaps.some((g: any) => g.hecho_o_periodo_afectado?.includes(dg.periodoAfectado))) {
+          mergedGaps.push({
+            id: dg.id,
+            descripcion: `Silencio procesal prolongado (${dg.diasInactividad} días sin comunicaciones registradas)`,
+            hecho_o_periodo_afectado: dg.periodoAfectado,
+            riesgo_procesal: dg.riesgoProcesal,
+            diligencia_o_prueba_sugerida: dg.diligenciaSugerida,
+            prioridad: dg.nivelRiesgo === "Crítico" ? "Alta" : dg.nivelRiesgo === "Alto" ? "Media" : "Baja"
+          });
+        }
+      });
+
+      const enrichedAnalysis: AnalysisResult = {
+        ...data.data,
+        cronologia: sortedEvents,
+        vacios_probatorios: mergedGaps
+      };
+
+      setAnalysis(enrichedAnalysis);
+      setIsRestoredFromLocal(false);
+
+      // Persistencia local en el navegador (Cero DB, Cero Coste de Hosting)
+      try {
+        localStorage.setItem("ediscovery_current_analysis", JSON.stringify(enrichedAnalysis));
+        localStorage.setItem("ediscovery_uploaded_files", JSON.stringify(payloadFiles));
+        localStorage.setItem("ediscovery_case_context", effectiveContext);
+      } catch (storageErr) {
+        console.warn("No fue posible almacenar en localStorage:", storageErr);
+      }
+
       if (data.warning) {
         setWarningNotice(data.warning);
       }
@@ -338,7 +412,42 @@ export default function App() {
                   P(H|E)
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("arguments")}
+                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+                  activeTab === "arguments"
+                    ? "border-indigo-600 text-indigo-700 bg-indigo-50/40"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <GitFork className="w-4 h-4 text-indigo-600" />
+                <span>Grafo Argumental</span>
+                <span className="text-[10px] bg-indigo-100 text-indigo-800 font-mono px-1.5 py-0.2 rounded-full">
+                  Toulmin
+                </span>
+              </button>
             </div>
+
+            {/* Restored from local cache banner */}
+            {isRestoredFromLocal && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-lg text-xs flex items-center justify-between gap-2 shadow-xs print:hidden">
+                <div className="flex items-center gap-2">
+                  <Database className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>
+                    <strong>Expediente cargado desde localStorage:</strong> Se recuperó el análisis previo de la memoria local sin consumir tokens ni invocar a la API de Gemini.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsRestoredFromLocal(false)}
+                  className="text-emerald-700 hover:text-emerald-900 font-semibold text-[11px]"
+                >
+                  Entendido
+                </button>
+              </div>
+            )}
 
             {/* Tab Views */}
             <div className="print:hidden">
@@ -366,6 +475,10 @@ export default function App() {
 
               {activeTab === "bayesian" && (
                 <BayesianGraphView network={analysis.red_bayesiana} />
+              )}
+
+              {activeTab === "arguments" && (
+                <ArgumentGraphView analysis={analysis} />
               )}
             </div>
 

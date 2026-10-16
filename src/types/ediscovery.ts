@@ -105,12 +105,29 @@ export interface AnalysisMetadata {
   alerta_integridad: string;
 }
 
+export interface ArgumentPremise {
+  id: string;
+  premisa: string;
+  hecho_vinculado_id?: string;
+  soporte_documental?: string;
+}
+
+export interface ArgumentScheme {
+  conclusion_principal: {
+    id: string;
+    afirmacion: string;
+  };
+  premisas: ArgumentPremise[];
+  garantia_inferencia: string;
+}
+
 export interface AnalysisResult {
   resumen_caso: CaseSummary;
   cronologia: TimelineEvent[];
   contradicciones: Contradiction[];
   vacios_probatorios: EvidentiaryGap[];
   red_bayesiana?: BayesianNetworkTopology;
+  esquema_argumental?: ArgumentScheme;
   recomendaciones_legales: string[];
   metadata_analisis: AnalysisMetadata;
 }
@@ -120,6 +137,8 @@ export interface UploadedFile {
   name: string;
   type: string;
   size: number;
+  originalSize?: number;
+  compressionRatio?: number;
   base64?: string;
   previewUrl?: string;
   textContent?: string;

@@ -27,38 +27,7 @@ interface UploadZoneProps {
   onClearCase?: () => void;
 }
 
-// Helper to optimize large mobile screenshots for rapid OCR without Vercel timeouts
-const compressImageIfNeeded = (dataUrl: string, maxDimension = 1600): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      let { width, height } = img;
-      if (width <= maxDimension && height <= maxDimension) {
-        resolve(dataUrl);
-        return;
-      }
-      if (width > height) {
-        height = Math.round((height * maxDimension) / width);
-        width = maxDimension;
-      } else {
-        width = Math.round((width * maxDimension) / height);
-        height = maxDimension;
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        resolve(dataUrl);
-        return;
-      }
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", 0.85));
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
-};
+import { processFileForUpload, validateBatchPayloadSize } from "../lib/fileProcessor";
 
 export const UploadZone: React.FC<UploadZoneProps> = ({
   files,
@@ -76,6 +45,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
   const [textSnippetTitle, setTextSnippetTitle] = useState("");
   const [textSnippetContent, setTextSnippetContent] = useState("");
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
+  const [batchWarning, setBatchWarning] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -90,15 +60,13 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
 
   const processFileList = async (fileList: FileList | File[]) => {
     const fileArray = Array.from(fileList);
-    const readPromises = fileArray.map((file) => {
-      return new Promise<UploadedFile>((resolve) => {
-        const reader = new FileReader();
-        const isImage = file.type.startsWith("image/");
-        const isText =
-          file.type.startsWith("text/") ||
-          file.name.endsWith(".txt") ||
-          file.name.endsWith(".md") ||
-          file.name.endsWith(".csv");
+    setNoticeMessage("Comprimiendo imágenes y extrayendo texto en el navegador...");
+
+    const resolvedFiles: UploadedFile[] = [];
+
+    for (const file of fileArray) {
+      try {
+        const processed = await processFileForUpload(file);
 
         let category: UploadedFile["category"] = "other";
         const lower = file.name.toLowerCase();
@@ -126,53 +94,48 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           category = "receipt";
         }
 
-        if (isText) {
-          reader.onload = (event) => {
-            resolve({
-              id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-              name: file.name,
-              type: file.type || "text/plain",
-              size: file.size,
-              textContent: event.target?.result as string,
-              category
-            });
-          };
-          reader.readAsText(file);
-        } else {
-          reader.onload = async (event) => {
-            let base64Data = event.target?.result as string;
-            if (isImage) {
-              base64Data = await compressImageIfNeeded(base64Data);
-            }
-            resolve({
-              id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-              name: file.name,
-              type: isImage ? "image/jpeg" : file.type || "application/octet-stream",
-              size: base64Data.length,
-              base64: base64Data,
-              previewUrl: isImage ? base64Data : undefined,
-              category
-            });
-          };
-          reader.readAsDataURL(file);
-        }
-      });
-    });
+        resolvedFiles.push({
+          id: processed.id,
+          name: processed.name,
+          type: processed.type,
+          size: processed.size,
+          originalSize: processed.originalSize,
+          compressionRatio: processed.compressionRatio,
+          textContent: processed.textContent,
+          base64: processed.base64,
+          previewUrl: processed.previewUrl,
+          category
+        });
+      } catch (err: any) {
+        console.error("Error al procesar archivo en cliente:", err);
+      }
+    }
 
-    const resolvedFiles = await Promise.all(readPromises);
-
-    // If a demo case was currently loaded, replace the demo files and clean stale context
     const isDemoActive =
       Boolean(activeCaseId) ||
       files.some((f) => f.id.startsWith("cf-") || f.id.startsWith("lab-"));
 
+    const newBatch = isDemoActive ? resolvedFiles : [...files, ...resolvedFiles];
+
+    // Validar límite estricto de Vercel Serverless (4.5 MB)
+    const validation = validateBatchPayloadSize(newBatch);
+    if (!validation.isValid && validation.warning) {
+      setBatchWarning(validation.warning);
+    } else {
+      setBatchWarning(null);
+    }
+
     if (isDemoActive) {
       onFilesChange(resolvedFiles);
       onCaseContextChange("");
-      setNoticeMessage(`Se ha reemplazado el caso de prueba con ${resolvedFiles.length} archivo(s) nuevo(s) propio(s).`);
+      setNoticeMessage(
+        `Se cargaron ${resolvedFiles.length} archivo(s) optimizados para Vercel Free.`
+      );
     } else {
-      onFilesChange([...files, ...resolvedFiles]);
-      setNoticeMessage(`Se añadieron ${resolvedFiles.length} archivo(s) al expediente.`);
+      onFilesChange(newBatch);
+      setNoticeMessage(
+        `Se añadieron ${resolvedFiles.length} archivo(s) preprocesados en el navegador.`
+      );
     }
 
     setTimeout(() => setNoticeMessage(null), 5000);
@@ -403,10 +366,20 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                     <p className="text-xs font-medium text-slate-800 truncate" title={file.name}>
                       {file.name}
                     </p>
-                    <p className="text-[11px] text-slate-400">
-                      {formatFileSize(file.size)}
-                      {file.category && ` · ${file.category}`}
-                    </p>
+                    <div className="text-[11px] text-slate-400 flex items-center gap-1.5 flex-wrap">
+                      <span>{formatFileSize(file.size)}</span>
+                      {file.compressionRatio !== undefined && file.compressionRatio > 0 && (
+                        <span className="text-[10px] bg-emerald-50 text-emerald-700 font-mono font-semibold px-1.5 py-0.2 rounded border border-emerald-200">
+                          -{file.compressionRatio}%
+                        </span>
+                      )}
+                      {file.textContent && !file.base64 && (
+                        <span className="text-[10px] bg-blue-50 text-blue-700 font-medium px-1.5 py-0.2 rounded border border-blue-200">
+                          Texto puro
+                        </span>
+                      )}
+                      {file.category && <span>· {file.category}</span>}
+                    </div>
                   </div>
                 </div>
 

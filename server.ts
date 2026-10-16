@@ -381,6 +381,21 @@ function generateTailoredAnalysis(files: EvidenceFilePayload[], caseContext: str
       })),
       tesis_probatoria: "La convergencia armónica de soportes documentales y la ausencia de contraprueba sustentan una convicción judicial preponderante."
     },
+    esquema_argumental: {
+      conclusion_principal: {
+        id: "C-1",
+        afirmacion: isLaborCase
+          ? "El despido fue injustificado e imputable a causal simulada"
+          : `Procede la reclamación dineraria por incumplimiento contractual en ${caseTitle}`
+      },
+      premisas: extractedEvents.slice(0, 4).map((ev, idx) => ({
+        id: `P-${idx + 1}`,
+        premisa: ev.hecho,
+        hecho_vinculado_id: ev.id,
+        soporte_documental: ev.fuente_documental
+      })),
+      garantia_inferencia: "Los actos propios documentados y los principios de congruencia y buena fe contractual impiden desatender las obligaciones acreditadas."
+    },
     recomendaciones_legales: [
       `Preservar copias exactas de los ${files.length} archivos para asegurar la cadena de custodia.`,
       `Incorporar la cronología procesal y citas textuales en los hechos de la demanda o contestación.`
