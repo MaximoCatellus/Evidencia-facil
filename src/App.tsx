@@ -109,10 +109,30 @@ export default function App() {
         })
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: any = null;
+
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        // Handle non-JSON responses from Vercel (e.g. 504 Gateway Timeout or server errors)
+        if (
+          res.status === 504 ||
+          responseText.includes("TIMEOUT") ||
+          responseText.includes("FUNCTION_INVOCATION") ||
+          responseText.includes("An error occurred")
+        ) {
+          throw new Error(
+            "El servidor de Vercel agotó el tiempo de espera (Timeout de 10s en plan gratuito). Los servidores de Google Gemini tardaron en responder debido a la alta demanda o al peso de los archivos. Prueba enviando los archivos de 1 en 1 o pulsando 'Reintentar Ahora'."
+          );
+        }
+        throw new Error(
+          `Respuesta del servidor (${res.status}): ${responseText.slice(0, 160)}`
+        );
+      }
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Error al procesar el expediente probatorio.");
+        throw new Error(data?.error || "Error al procesar el expediente probatorio.");
       }
 
       setLoadingStep("Estructurando cronología judicial...");

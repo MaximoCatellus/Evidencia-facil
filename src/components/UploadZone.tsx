@@ -27,6 +27,39 @@ interface UploadZoneProps {
   onClearCase?: () => void;
 }
 
+// Helper to optimize large mobile screenshots for rapid OCR without Vercel timeouts
+const compressImageIfNeeded = (dataUrl: string, maxDimension = 1600): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width <= maxDimension && height <= maxDimension) {
+        resolve(dataUrl);
+        return;
+      }
+      if (width > height) {
+        height = Math.round((height * maxDimension) / width);
+        width = maxDimension;
+      } else {
+        width = Math.round((width * maxDimension) / height);
+        height = maxDimension;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(dataUrl);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+};
+
 export const UploadZone: React.FC<UploadZoneProps> = ({
   files,
   onFilesChange,
@@ -106,13 +139,16 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           };
           reader.readAsText(file);
         } else {
-          reader.onload = (event) => {
-            const base64Data = event.target?.result as string;
+          reader.onload = async (event) => {
+            let base64Data = event.target?.result as string;
+            if (isImage) {
+              base64Data = await compressImageIfNeeded(base64Data);
+            }
             resolve({
               id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
               name: file.name,
-              type: file.type || "application/octet-stream",
-              size: file.size,
+              type: isImage ? "image/jpeg" : file.type || "application/octet-stream",
+              size: base64Data.length,
               base64: base64Data,
               previewUrl: isImage ? base64Data : undefined,
               category
