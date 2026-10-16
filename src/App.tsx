@@ -147,19 +147,35 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 print:p-0">
         {/* Error notification if any */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-3 shadow-xs">
-            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <span className="font-bold block mb-0.5">Aviso del Sistema Procesal:</span>
-              <p>{error}</p>
+          <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block mb-0.5">Aviso del Sistema Procesal:</span>
+                <p>
+                  {error.includes("503") || error.includes("high demand")
+                    ? "Los servidores de IA de Google experimentaron un pico de alta demanda temporal (Error 503). Esto suele solucionarse de inmediato. Haz clic en 'Reintentar Ahora'."
+                    : error}
+                </p>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setError(null)}
-              className="text-rose-600 hover:text-rose-900 font-medium"
-            >
-              Descartar
-            </button>
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded text-xs transition-colors inline-flex items-center gap-1.5"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Reintentar Ahora
+              </button>
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                className="px-2.5 py-1.5 text-rose-700 hover:text-rose-900 font-medium"
+              >
+                Descartar
+              </button>
+            </div>
           </div>
         )}
 
