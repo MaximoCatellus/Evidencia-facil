@@ -12,7 +12,8 @@ import {
   Scale,
   GitFork,
   Database,
-  ShieldCheck
+  ShieldCheck,
+  BookOpen
 } from "lucide-react";
 import { Header } from "./components/Header";
 import { UploadZone } from "./components/UploadZone";
@@ -26,6 +27,7 @@ import { ArgumentGraphView } from "./components/ArgumentGraphView";
 import { CustodyChainView } from "./components/CustodyChainView";
 import { JudicialReportModal } from "./components/JudicialReportModal";
 import { PrivacyModal } from "./components/PrivacyModal";
+import { UserGuideView } from "./components/UserGuideView";
 import { ExportBar } from "./components/ExportBar";
 import { DocumentModal } from "./components/DocumentModal";
 import { PrintReport } from "./components/PrintReport";
@@ -42,13 +44,14 @@ export default function App() {
   const [loadingStep, setLoadingStep] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
-    "timeline" | "matrix" | "contradictions" | "gaps" | "bayesian" | "arguments" | "custody"
+    "timeline" | "matrix" | "contradictions" | "gaps" | "bayesian" | "arguments" | "custody" | "guide"
   >("timeline");
   const [selectedEventModal, setSelectedEventModal] = useState<TimelineEvent | null>(null);
   const [warningNotice, setWarningNotice] = useState<string | null>(null);
   const [isRestoredFromLocal, setIsRestoredFromLocal] = useState(false);
   const [isJudicialReportOpen, setIsJudicialReportOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
 
   // Restore analysis from localStorage on initial page load (Zero DB, Zero API cost on reload)
   useEffect(() => {
@@ -245,6 +248,7 @@ export default function App() {
         onNewAnalysis={handleNewAnalysis}
         onOpenJudicialReport={() => setIsJudicialReportOpen(true)}
         onOpenPrivacyPolicy={() => setIsPrivacyModalOpen(true)}
+        onOpenGuide={() => setIsGuideModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -296,6 +300,7 @@ export default function App() {
             activeCaseId={activeCaseId}
             onClearCase={handleNewAnalysis}
             onOpenPrivacyPolicy={() => setIsPrivacyModalOpen(true)}
+            onOpenGuide={() => setIsGuideModalOpen(true)}
           />
         </div>
 
@@ -456,6 +461,19 @@ export default function App() {
                   SHA-256
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("guide")}
+                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+                  activeTab === "guide"
+                    ? "border-blue-600 text-blue-800 bg-blue-50/50"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <BookOpen className="w-4 h-4 text-blue-600" />
+                <span>Guía de Uso & Métodos</span>
+              </button>
             </div>
 
             {/* Restored from local cache banner */}
@@ -512,6 +530,10 @@ export default function App() {
               {activeTab === "custody" && (
                 <CustodyChainView files={files} analysis={analysis} />
               )}
+
+              {activeTab === "guide" && (
+                <UserGuideView onLoadSample={handleLoadSample} />
+              )}
             </div>
 
             {/* Printable official legal layout */}
@@ -542,6 +564,17 @@ export default function App() {
           isOpen={isPrivacyModalOpen}
           onClose={() => setIsPrivacyModalOpen(false)}
         />
+
+        {/* Full Methodology & User Guide Modal */}
+        {isGuideModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto print:hidden">
+            <UserGuideView
+              isModal={true}
+              onClose={() => setIsGuideModalOpen(false)}
+              onLoadSample={handleLoadSample}
+            />
+          </div>
+        )}
       </main>
 
       {/* Footer & Ley 29733 Peruvian Legal Disclaimer */}
@@ -567,13 +600,24 @@ export default function App() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsPrivacyModalOpen(true)}
-              className="text-xs font-semibold px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors shrink-0 shadow-2xs cursor-pointer"
-            >
-              Ver Certificado Ley 29733
-            </button>
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setIsGuideModalOpen(true)}
+                className="text-xs font-semibold px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg transition-colors shadow-2xs inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                <span>Guía de Uso & Métodos</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsPrivacyModalOpen(true)}
+                className="text-xs font-semibold px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors shadow-2xs cursor-pointer"
+              >
+                Ver Certificado Ley 29733
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-400 text-[11px] pt-1">

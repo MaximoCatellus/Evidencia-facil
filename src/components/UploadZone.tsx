@@ -14,7 +14,8 @@ import {
   Lock,
   ShieldCheck,
   ServerOff,
-  EyeOff
+  EyeOff,
+  BookOpen
 } from "lucide-react";
 import { UploadedFile } from "../types/ediscovery";
 
@@ -29,6 +30,7 @@ interface UploadZoneProps {
   activeCaseId?: string;
   onClearCase?: () => void;
   onOpenPrivacyPolicy?: () => void;
+  onOpenGuide?: () => void;
 }
 
 import { processFileForUpload, validateBatchPayloadSize } from "../lib/fileProcessor";
@@ -43,7 +45,8 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
   onLoadSample,
   activeCaseId,
   onClearCase,
-  onOpenPrivacyPolicy
+  onOpenPrivacyPolicy,
+  onOpenGuide
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [showTextModal, setShowTextModal] = useState(false);
@@ -250,9 +253,21 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           </p>
         </div>
 
-        {/* Preloaded demo trigger */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">¿Sin archivos a mano?</span>
+        {/* Preloaded demo trigger & Guide button */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {onOpenGuide && (
+            <button
+              type="button"
+              onClick={onOpenGuide}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors border border-blue-200 inline-flex items-center gap-1.5 shadow-2xs"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+              <span>¿Cómo funciona? Guía Práctica</span>
+            </button>
+          )}
+
+          <span className="text-xs text-slate-400 hidden sm:inline">·</span>
+
           <button
             type="button"
             onClick={() => onLoadSample("disputa-contractual")}
