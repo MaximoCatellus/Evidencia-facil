@@ -23,6 +23,7 @@ export const SAMPLE_CASES: PreloadedCase[] = [
         name: "Contrato_Marco_Remodelacion_2024.pdf",
         type: "application/pdf",
         size: 142000,
+        sha256: "4a8f1e29c0d38b5719e7a2b0c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
         textContent: `CONTRATO DE ARRENDAMIENTO DE SERVICIOS Y OBRA CIVIL
 Fecha: 15 de enero de 2024
 Partes: Inversiones Los Robles SpA (Comitente) representada por don Rodrigo Morales, y Constructora Delta S.A.S. (Contratista) representada por la Arq. Valentina Silva.
@@ -36,6 +37,7 @@ CLÁUSULA DÉCIMA - PENALIDADES: En caso de mora culpable o abandono injustifica
         name: "WhatsApp_Chat_Rodrigo_Valentina_Abril.png",
         type: "text/plain",
         size: 45000,
+        sha256: "c83f91a2b4e5d6c708192a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d",
         textContent: `[REGISTRO EXTRACCIÓN WHATSAPP - CONVERSACIÓN DIR. OPERACIONES Y DIR. OBRA]
 [12/04/2024 11:22:10] Valentina Silva: Rodrigo, buenos días. Te comento que la perfilería de aluminio y los vidrios acústicos del piso 4 están retenidos en puerto por el paro de aduanas. Tenemos un 70% avanzado pero esto nos frena 3 semanas. Necesitamos prorrogar 25 días la fecha de término sin penalizaciones para poder entregar con calidad.
 [12/04/2024 11:45:04] Rodrigo Morales: Hola Valentina, entendido. No hay problema con los 25 días adicionales considerando que es fuerza mayor por la aduana. Procedan con los demás frentes y mándame la factura del hito 2 para tramitar el pago con tesorería el viernes.
@@ -47,6 +49,7 @@ CLÁUSULA DÉCIMA - PENALIDADES: En caso de mora culpable o abandono injustifica
         name: "Carta_Notarial_Resolucion_Agosto.pdf",
         type: "application/pdf",
         size: 98000,
+        sha256: "e19a4b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a",
         textContent: `NOTARÍA PÚBLICA DÉCIMO CUARTA - CARTA NOTARIAL DE REQUERIMIENTO Y RESOLUCIÓN
 Santiago de Chile, 28 de agosto de 2024
 A: CONSTRUCTORA DELTA S.A.S.
@@ -59,6 +62,7 @@ Por medio de la presente, comunicamos que en atención al vencimiento fatal del 
         name: "Email_Reclamo_Adicionales_Junio.txt",
         type: "text/plain",
         size: 28000,
+        sha256: "8f7e6d5c4b3a2019e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2019e8d7c6b5a4f",
         textContent: `De: valentina.silva@constructoradelta.com
 Para: rodrigo.morales@losrobles.com
 Fecha: 05 de Junio de 2024, 14:00 hrs
@@ -220,7 +224,9 @@ Tal como te informé verbalmente la semana pasada en terreno, tuvimos que reforz
             probabilidad_si_hipotesis_cierta: 0.05,
             probabilidad_si_hipotesis_falsa: 0.92,
             justificacion_probabilistica: "Es sumamente improbable (5%) que existiera abandono culposo cuando el propio comitente consintió formalmente la extensión del plazo en el chat.",
-            estado_observado: "presente"
+            estado_observado: "presente",
+            nivel_autenticidad: 0.85,
+            motivo_impugnacion: "Captura de pantalla de chat susceptible de tacha por falta de cotejo pericial del teléfono físico."
           },
           {
             id: "E-002",
@@ -231,7 +237,9 @@ Tal como te informé verbalmente la semana pasada en terreno, tuvimos que reforz
             probabilidad_si_hipotesis_cierta: 0.90,
             probabilidad_si_hipotesis_falsa: 0.20,
             justificacion_probabilistica: "Típica manifestación formal del comitente al imputar incumplimiento, aunque contradicha por sus propios actos precedentes.",
-            estado_observado: "presente"
+            estado_observado: "presente",
+            nivel_autenticidad: 1.0,
+            motivo_impugnacion: "Instrumento público notarial indubitado con firma de ministro de fe."
           },
           {
             id: "E-003",
@@ -242,7 +250,9 @@ Tal como te informé verbalmente la semana pasada en terreno, tuvimos que reforz
             probabilidad_si_hipotesis_cierta: 0.80,
             probabilidad_si_hipotesis_falsa: 0.50,
             justificacion_probabilistica: "Fija el marco obligacional y la sanción si se acreditara la culpabilidad.",
-            estado_observado: "presente"
+            estado_observado: "presente",
+            nivel_autenticidad: 1.0,
+            motivo_impugnacion: "Contrato privado con firmas autorizadas indubitadas."
           },
           {
             id: "E-004",
@@ -253,7 +263,9 @@ Tal como te informé verbalmente la semana pasada en terreno, tuvimos que reforz
             probabilidad_si_hipotesis_cierta: 0.25,
             probabilidad_si_hipotesis_falsa: 0.80,
             justificacion_probabilistica: "Acredita que la paralización no fue intempestiva ni furtiva sino originada en un diferendo por costos imprevistos de seguridad estructural.",
-            estado_observado: "presente"
+            estado_observado: "presente",
+            nivel_autenticidad: 0.90,
+            motivo_impugnacion: "Correo electrónico corporativo con cabeceras SMTP coincidentes."
           }
         ],
         tesis_probatoria: "La prueba documental electrónica desvirtúa la hipótesis de abandono intempestivo al existir autorización expresa de prórroga por actos propios del acreedor."
@@ -267,7 +279,61 @@ Tal como te informé verbalmente la semana pasada en terreno, tuvimos que reforz
         total_documentos: 4,
         calidad_evidencia: "Sólida con Trazabilidad Cruzada",
         alerta_integridad: "Se recomienda peritaje forense digital sobre el teléfono móvil para asegurar autenticidad del chat frente a eventuales tachas."
-      }
+      },
+      cadena_custodia: [
+        {
+          id: "CC-01",
+          nombre_archivo: "Contrato_Marco_Remodelacion_2024.pdf",
+          tipo: "application/pdf",
+          tamano_bytes: 142000,
+          sha256: "4a8f1e29c0d38b5719e7a2b0c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
+          fecha_fijacion: "2024-08-29T10:00:00Z",
+          algoritmo: "SHA-256 (FIPS-180-4)",
+          estado_integridad: "Intacto / Verificado",
+          hechos_relacionados: ["H-001"],
+          evidencias_relacionadas: ["E-003"],
+          observaciones_forenses: "Copia digital certificada sin discrepancias de hash."
+        },
+        {
+          id: "CC-02",
+          nombre_archivo: "WhatsApp_Chat_Rodrigo_Valentina_Abril.png",
+          tipo: "image/png",
+          tamano_bytes: 45000,
+          sha256: "c83f91a2b4e5d6c708192a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d",
+          fecha_fijacion: "2024-08-29T10:05:00Z",
+          algoritmo: "SHA-256 (FIPS-180-4)",
+          estado_integridad: "Intacto / Verificado",
+          hechos_relacionados: ["H-002", "H-003"],
+          evidencias_relacionadas: ["E-001"],
+          observaciones_forenses: "Captura de pantalla fijada. Se recomienda cotejo de metadatos EXIF."
+        },
+        {
+          id: "CC-03",
+          nombre_archivo: "Carta_Notarial_Resolucion_Agosto.pdf",
+          tipo: "application/pdf",
+          tamano_bytes: 98000,
+          sha256: "e19a4b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a",
+          fecha_fijacion: "2024-08-29T10:10:00Z",
+          algoritmo: "SHA-256 (FIPS-180-4)",
+          estado_integridad: "Intacto / Verificado",
+          hechos_relacionados: ["H-005"],
+          evidencias_relacionadas: ["E-002"],
+          observaciones_forenses: "Testimonio notarial escaneado con sello timbrado."
+        },
+        {
+          id: "CC-04",
+          nombre_archivo: "Email_Reclamo_Adicionales_Junio.txt",
+          tipo: "text/plain",
+          tamano_bytes: 28000,
+          sha256: "8f7e6d5c4b3a2019e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2019e8d7c6b5a4f",
+          fecha_fijacion: "2024-08-29T10:15:00Z",
+          algoritmo: "SHA-256 (FIPS-180-4)",
+          estado_integridad: "Intacto / Verificado",
+          hechos_relacionados: ["H-004"],
+          evidencias_relacionadas: ["E-004"],
+          observaciones_forenses: "Exportación de correo con preservación de cabeceras RFC 5322."
+        }
+      ]
     }
   },
   {
@@ -282,6 +348,7 @@ Tal como te informé verbalmente la semana pasada en terreno, tuvimos que reforz
         name: "WhatsApp_Supervisor_Turnos_FinDeSemana.png",
         type: "text/plain",
         size: 32000,
+        sha256: "9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b",
         textContent: `[CHAT WHATSAPP - SUPERVISOR ÁREA LOGÍSTICA]
 [06/07/2024 19:40] Supervisor Carlos Gómez: Esteban, necesitamos que vengas mañana sábado de 8am a 6pm y el domingo de 9am a 3pm para terminar el inventario trimestral. Es obligatorio, no te preocupes que esas horas van anotadas aparte con bono.
 [06/07/2024 19:42] Esteban Ríos: Enterado don Carlos, ahí estaré ambos días para no dejar tirado el equipo.
@@ -293,6 +360,7 @@ Tal como te informé verbalmente la semana pasada en terreno, tuvimos que reforz
         name: "Carta_Despido_Bajo_Rendimiento.pdf",
         type: "application/pdf",
         size: 85000,
+        sha256: "3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c",
         textContent: `CARTA DE DESPIDO POR CAUSAL DE INCUMPLIMIENTO CONTRACTUAL Y FALTA DE PRODUCTIVIDAD
 Fecha: 31 de julio de 2024
 A: Esteban Ríos Morales
@@ -404,7 +472,9 @@ Por medio de la presente, la gerencia de Recursos Humanos le notifica su desvinc
             probabilidad_si_hipotesis_cierta: 0.95,
             probabilidad_si_hipotesis_falsa: 0.10,
             justificacion_probabilistica: "Muy alta probabilidad (95%) de despido fraudulento al demostrarse imposición de jornada ilegal fuera de registro.",
-            estado_observado: "presente"
+            estado_observado: "presente",
+            nivel_autenticidad: 0.80,
+            motivo_impugnacion: "Captura de chat personal de WhatsApp susceptible de requerir cotejo pericial del teléfono físico."
           },
           {
             id: "E-102",
@@ -415,7 +485,9 @@ Por medio de la presente, la gerencia de Recursos Humanos le notifica su desvinc
             probabilidad_si_hipotesis_cierta: 0.90,
             probabilidad_si_hipotesis_falsa: 0.05,
             justificacion_probabilistica: "Virtualmente incompatible (5%) con una causal coetánea y verídica de bajo rendimiento técnico.",
-            estado_observado: "presente"
+            estado_observado: "presente",
+            nivel_autenticidad: 0.85,
+            motivo_impugnacion: "Conversación de chat indiciaria respaldada por hechos materiales (despachos efectivamente efectuados)."
           },
           {
             id: "E-103",
@@ -426,7 +498,9 @@ Por medio de la presente, la gerencia de Recursos Humanos le notifica su desvinc
             probabilidad_si_hipotesis_cierta: 0.92,
             probabilidad_si_hipotesis_falsa: 0.70,
             justificacion_probabilistica: "Instrumento formal de materialización de la represalia empresarial.",
-            estado_observado: "presente"
+            estado_observado: "presente",
+            nivel_autenticidad: 1.0,
+            motivo_impugnacion: "Documento oficial emanado del empleador con fecha cierta de recepción."
           }
         ],
         tesis_probatoria: "La contradicción directa entre los elogios contemporáneos del supervisor directo y la carta posterior de despido evidencia simulación de causal con altísima certeza estadística."
@@ -440,7 +514,35 @@ Por medio de la presente, la gerencia de Recursos Humanos le notifica su desvinc
         total_documentos: 2,
         calidad_evidencia: "Sólida",
         alerta_integridad: "Verificar correlación horaria de las conexiones telefónicas para respaldar geolocalización en la bodega."
-      }
+      },
+      cadena_custodia: [
+        {
+          id: "CC-101",
+          nombre_archivo: "WhatsApp_Supervisor_Turnos_FinDeSemana.png",
+          tipo: "image/png",
+          tamano_bytes: 32000,
+          sha256: "9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b",
+          fecha_fijacion: "2024-08-01T14:20:00Z",
+          algoritmo: "SHA-256 (FIPS-180-4)",
+          estado_integridad: "Intacto / Verificado",
+          hechos_relacionados: ["H-101", "H-102"],
+          evidencias_relacionadas: ["E-101", "E-102"],
+          observaciones_forenses: "Captura digital fijada. Se recomienda acta notarial de cotejo del teléfono receptor."
+        },
+        {
+          id: "CC-102",
+          nombre_archivo: "Carta_Despido_Bajo_Rendimiento.pdf",
+          tipo: "application/pdf",
+          tamano_bytes: 85000,
+          sha256: "3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c",
+          fecha_fijacion: "2024-08-01T14:25:00Z",
+          algoritmo: "SHA-256 (FIPS-180-4)",
+          estado_integridad: "Intacto / Verificado",
+          hechos_relacionados: ["H-103"],
+          evidencias_relacionadas: ["E-103"],
+          observaciones_forenses: "Carta de despido original entregada al trabajador. Integridad de hash conforme."
+        }
+      ]
     }
   }
 ];

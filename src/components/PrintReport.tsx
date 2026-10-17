@@ -156,15 +156,103 @@ export const PrintReport: React.FC<PrintReportProps> = ({ analysis }) => {
         </div>
       )}
 
+      {/* 6. Evaluación Bayesiana Formal */}
+      {analysis.red_bayesiana && (
+        <div className="mb-6 page-break-before">
+          <h2 className="text-sm font-bold uppercase tracking-wider border-b border-gray-400 pb-1 mb-2">
+            6. EVALUACIÓN PROBATORIA FORMAL (TEOREMA DE BAYES Y MODELADO DE INCERTIDUMBRE)
+          </h2>
+          <div className="border border-gray-400 p-3 mb-3 bg-gray-50 text-[10px]">
+            <p className="font-bold">HIPÓTESIS A CONTRASTAR (H):</p>
+            <p className="italic text-xs mb-2">"{analysis.red_bayesiana.hipotesis.descripcion}"</p>
+            <p><strong>Probabilidad a Priori P(H):</strong> {(analysis.red_bayesiana.hipotesis.probabilidad_a_priori * 100).toFixed(0)}% (Punto de partida neutral de imparcialidad)</p>
+            <p><strong>Tesis Probatoria:</strong> {analysis.red_bayesiana.tesis_probatoria}</p>
+          </div>
+
+          <table className="w-full text-left border-collapse border border-gray-300 text-[9px] mb-4">
+            <thead>
+              <tr className="bg-gray-100 font-bold">
+                <th className="border border-gray-300 p-1.5">Nodo de Prueba</th>
+                <th className="border border-gray-300 p-1.5 w-16 text-center">Estado</th>
+                <th className="border border-gray-300 p-1.5 w-20 text-center">Autenticidad P(A)</th>
+                <th className="border border-gray-300 p-1.5 w-16 text-center">P(E|H)</th>
+                <th className="border border-gray-300 p-1.5 w-16 text-center">P(E|~H)</th>
+                <th className="border border-gray-300 p-1.5">Soporte y Cita Literal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analysis.red_bayesiana.evidencias.map((ev, i) => (
+                <tr key={ev.id || i}>
+                  <td className="border border-gray-300 p-1.5">
+                    <strong>{ev.nombre}</strong>
+                    <div className="text-gray-500 font-mono text-[8px]">{ev.fuente_documental}</div>
+                  </td>
+                  <td className="border border-gray-300 p-1.5 text-center font-bold uppercase">
+                    {ev.estado_observado}
+                  </td>
+                  <td className="border border-gray-300 p-1.5 text-center font-mono">
+                    {((ev.nivel_autenticidad ?? 1.0) * 100).toFixed(0)}%
+                  </td>
+                  <td className="border border-gray-300 p-1.5 text-center font-mono">
+                    {(ev.probabilidad_si_hipotesis_cierta * 100).toFixed(0)}%
+                  </td>
+                  <td className="border border-gray-300 p-1.5 text-center font-mono">
+                    {(ev.probabilidad_si_hipotesis_falsa * 100).toFixed(0)}%
+                  </td>
+                  <td className="border border-gray-300 p-1.5 italic">
+                    "{ev.cita_clave}"
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* 7. Registro de Cadena de Custodia Criptográfica */}
+      {analysis.cadena_custodia && analysis.cadena_custodia.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-bold uppercase tracking-wider border-b border-gray-400 pb-1 mb-2">
+            7. FIJACIÓN CRIPTOGRÁFICA Y CADENA DE CUSTODIA (SHA-256)
+          </h2>
+          <table className="w-full text-left border-collapse border border-gray-300 text-[9px]">
+            <thead>
+              <tr className="bg-gray-100 font-bold">
+                <th className="border border-gray-300 p-1.5">Documento Fuente</th>
+                <th className="border border-gray-300 p-1.5">Hash SHA-256 (Inalterabilidad FIPS-180-4)</th>
+                <th className="border border-gray-300 p-1.5 w-24 text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analysis.cadena_custodia.map((item, idx) => (
+                <tr key={item.id || idx}>
+                  <td className="border border-gray-300 p-1.5 font-bold">
+                    {item.nombre_archivo}
+                    <div className="text-[8px] text-gray-500 font-normal">{(item.tamano_bytes / 1024).toFixed(1)} KB</div>
+                  </td>
+                  <td className="border border-gray-300 p-1.5 font-mono text-[8px] break-all">
+                    {item.sha256}
+                  </td>
+                  <td className="border border-gray-300 p-1.5 text-center font-bold text-gray-800">
+                    {item.estado_integridad}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* Signature block */}
       <div className="mt-12 pt-6 border-t border-gray-400 flex justify-between text-[10px]">
         <div>
-          <p>AUDITORÍA FORENSE DIGITAL</p>
-          <p>SISTEMA E-DISCOVERY EVIDENCIAFÁCIL</p>
+          <p className="font-bold">AUDITORÍA FORENSE DIGITAL & E-DISCOVERY</p>
+          <p>ESTÁNDAR ISO/IEC 27037 · TRAZABILIDAD 1:1</p>
+          <p className="text-[8px] text-gray-500 mt-0.5">Hash de verificación criptográfica incrustado</p>
         </div>
         <div className="text-right">
-          <p>CONFORMIDAD DE REVISIÓN LITIGANTE</p>
-          <p className="mt-8 border-t border-black w-48 text-center pt-1">Firma / R.U.T. / Matrícula</p>
+          <p className="font-bold">CONFORMIDAD PERICIAL / LETRADO PATROCINANTE</p>
+          <p className="mt-8 border-t border-black w-56 text-center pt-1 font-mono text-[9px]">Firma / R.U.T. / Matrícula Profesional</p>
         </div>
       </div>
     </div>

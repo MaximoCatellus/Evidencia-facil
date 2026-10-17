@@ -11,7 +11,10 @@ import {
   HelpCircle,
   Sparkles,
   CheckCircle2,
-  Lock
+  Lock,
+  ShieldCheck,
+  ServerOff,
+  EyeOff
 } from "lucide-react";
 import { UploadedFile } from "../types/ediscovery";
 
@@ -25,6 +28,7 @@ interface UploadZoneProps {
   onLoadSample: (id: string) => void;
   activeCaseId?: string;
   onClearCase?: () => void;
+  onOpenPrivacyPolicy?: () => void;
 }
 
 import { processFileForUpload, validateBatchPayloadSize } from "../lib/fileProcessor";
@@ -38,7 +42,8 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
   isLoading,
   onLoadSample,
   activeCaseId,
-  onClearCase
+  onClearCase,
+  onOpenPrivacyPolicy
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [showTextModal, setShowTextModal] = useState(false);
@@ -104,6 +109,8 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           textContent: processed.textContent,
           base64: processed.base64,
           previewUrl: processed.previewUrl,
+          sha256: processed.sha256,
+          timestamp_ingesta: processed.timestamp_ingesta,
           category
         });
       } catch (err: any) {
@@ -254,6 +261,40 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
             <Sparkles className="w-3.5 h-3.5 text-blue-600" />
             Cargar Caso Real Demo
           </button>
+        </div>
+      </div>
+
+      {/* Peruvian Ley 29733 Privacy & Zero-Knowledge Guarantee Card */}
+      <div className="mb-5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/90 rounded-xl p-4 text-xs text-emerald-950 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs font-bold">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-slate-900 text-xs">
+                  Garantía de Privacidad y Protección de Datos Personales (Ley N° 29733 - Perú)
+                </span>
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900">
+                  Cero Servidores Privados
+                </span>
+              </div>
+              <p className="text-[11px] text-emerald-900 leading-relaxed">
+                Tus chats, fotos y documentos <strong>NO se envían a ningún servidor privado ni base de datos externa</strong>. El creador y administrador de la plataforma <strong>NO tiene forma técnica ni acceso alguno para ver, leer o almacenar tus archivos</strong>. Todo el preprocesamiento ocurre localmente en la memoria de tu propio navegador web.
+              </p>
+            </div>
+          </div>
+          {onOpenPrivacyPolicy && (
+            <button
+              type="button"
+              onClick={onOpenPrivacyPolicy}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white transition-colors shrink-0 shadow-2xs inline-flex items-center gap-1.5 self-start sm:self-center"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Ver Términos Ley 29733</span>
+            </button>
+          )}
         </div>
       </div>
 

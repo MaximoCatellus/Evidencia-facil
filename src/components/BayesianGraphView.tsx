@@ -71,6 +71,8 @@ export const BayesianGraphView: React.FC<BayesianGraphViewProps> = ({ network: i
       setPriorProb(initialNetwork.hipotesis.probabilidad_a_priori || 0.5);
       setNodeStates({});
       setNodeLikelihoods({});
+      setNodeAuthenticity({});
+      setNodeImpugnaciones({});
     }
   }, [initialNetwork]);
 
@@ -82,6 +84,8 @@ export const BayesianGraphView: React.FC<BayesianGraphViewProps> = ({ network: i
   const [nodeLikelihoods, setNodeLikelihoods] = useState<
     Record<string, { pH: number; pNotH: number }>
   >({});
+  const [nodeAuthenticity, setNodeAuthenticity] = useState<Record<string, number>>({});
+  const [nodeImpugnaciones, setNodeImpugnaciones] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<"cards" | "graph">("cards");
   const [selectedSensitivityNodeId, setSelectedSensitivityNodeId] = useState<string | null>(null);
 
@@ -93,15 +97,18 @@ export const BayesianGraphView: React.FC<BayesianGraphViewProps> = ({ network: i
   const [newNodeQuote, setNewNodeQuote] = useState("");
   const [newNodePH, setNewNodePH] = useState(0.85);
   const [newNodePNotH, setNewNodePNotH] = useState(0.15);
+  const [newNodeAuth, setNewNodeAuth] = useState(1.0);
 
   // Pure deterministic mathematical calculation via lib/bayesianEngine.ts
   const calculation = useMemo(() => {
     return runBayesianInference(network, {
       priorProbability: priorProb,
       nodeStates,
-      nodeLikelihoods
+      nodeLikelihoods,
+      nodeAuthenticity,
+      nodeImpugnaciones
     });
-  }, [network, priorProb, nodeStates, nodeLikelihoods]);
+  }, [network, priorProb, nodeStates, nodeLikelihoods, nodeAuthenticity, nodeImpugnaciones]);
 
   // Handler to toggle an evidence state (presente / ausente / desconocida)
   const handleStateChange = (nodeId: string, state: BayesianEvidenceState) => {
@@ -132,11 +139,29 @@ export const BayesianGraphView: React.FC<BayesianGraphViewProps> = ({ network: i
     }));
   };
 
+  // Handler to update authenticity level P(A) (Nivel 2 de Inferencia en Cascada)
+  const handleAuthenticityChange = (nodeId: string, value: number) => {
+    setNodeAuthenticity((prev) => ({
+      ...prev,
+      [nodeId]: Math.min(Math.max(value, 0.0), 1.0)
+    }));
+  };
+
+  // Handler to update tacha/impugnacion reason
+  const handleImpugnacionChange = (nodeId: string, reason: string) => {
+    setNodeImpugnaciones((prev) => ({
+      ...prev,
+      [nodeId]: reason
+    }));
+  };
+
   // Reset all interactive adjustments back to baseline
   const handleReset = () => {
     setPriorProb(network.hipotesis.probabilidad_a_priori || 0.5);
     setNodeStates({});
     setNodeLikelihoods({});
+    setNodeAuthenticity({});
+    setNodeImpugnaciones({});
   };
 
   // Add custom prospective evidence node
@@ -739,6 +764,101 @@ export const BayesianGraphView: React.FC<BayesianGraphViewProps> = ({ network: i
                   <span className="text-slate-400 font-mono text-[10px]">
                     Fuerza: {node.fuerza_probatoria}
                   </span>
+                </div>
+
+                {/* Level 2: Authenticity / Integrity / Tacha Controls (Schum Cascaded Inference) */}
+                <div className="mt-3 pt-3 border-t border-slate-100 bg-slate-50/70 -mx-5 -mb-5 p-4 rounded-b-xl">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                      <span className="text-xs font-bold text-slate-800">
+                        Nivel 2: Autenticidad / Integridad Documental P(A)
+                      </span>
+                      <span className="text-[10px] bg-blue-100 text-blue-800 font-mono px-1.5 py-0.2 rounded font-semibold">
+                        {((node.nivel_autenticidad ?? 1.0) * 100).toFixed(0)}%
+                      </span>
+                    </div>
+
+                    {/* Presets: Indubitada 100%, Tacha Parcial 50%, Impugnada 15% */}
+                    <div className="flex items-center gap-1 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => handleAuthenticityChange(node.id, 1.0)}
+                        className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                          (node.nivel_autenticidad ?? 1.0) >= 0.95
+                            ? "bg-emerald-600 text-white font-bold"
+                            : "bg-white text-slate-700 hover:bg-slate-200 border border-slate-200"
+                        }`}
+                        title="Documento indubitado, legalizado o verificado con peritaje forense"
+                      >
+                        🛡️ Indubitado (100%)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAuthenticityChange(node.id, 0.5)}
+                        className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                          (node.nivel_autenticidad ?? 1.0) >= 0.45 && (node.nivel_autenticidad ?? 1.0) <= 0.65
+                            ? "bg-amber-600 text-white font-bold"
+                            : "bg-white text-slate-700 hover:bg-slate-200 border border-slate-200"
+                        }`}
+                        title="Tacha parcial o cuestionamiento de autoría sin peritaje concluyente"
+                      >
+                        ⚠️ Cuestionado (50%)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAuthenticityChange(node.id, 0.15)}
+                        className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                          (node.nivel_autenticidad ?? 1.0) <= 0.25
+                            ? "bg-rose-600 text-white font-bold"
+                            : "bg-white text-slate-700 hover:bg-slate-200 border border-slate-200"
+                        }`}
+                        title="Impugnación por sospecha fundada de adulteración o falsedad"
+                      >
+                        ❌ Impugnado (15%)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                    <div className="md:col-span-6 flex items-center gap-2">
+                      <span className="text-[10px] text-slate-500 shrink-0 font-medium">Modulación fina:</span>
+                      <input
+                        type="range"
+                        min="0.0"
+                        max="1.0"
+                        step="0.05"
+                        value={node.nivel_autenticidad ?? 1.0}
+                        onChange={(e) => handleAuthenticityChange(node.id, parseFloat(e.target.value))}
+                        className="w-full accent-blue-600 cursor-pointer h-1.5 bg-slate-200 rounded"
+                      />
+                    </div>
+
+                    <div className="md:col-span-6 text-[11px] text-slate-600 leading-tight">
+                      {node.nivel_autenticidad < 0.99 ? (
+                        <span className="text-amber-800">
+                          ⚖️ <strong>Atenuación por Tacha:</strong> LR nominal de{" "}
+                          <strong className="font-mono">{node.razon_verosimilitud_nominal.toFixed(2)}x</strong> reducido a LR efectivo de{" "}
+                          <strong className="font-mono text-slate-900">{node.razon_verosimilitud.toFixed(2)}x</strong> ({node.peso_evidencia_db.toFixed(1)} dB).
+                        </span>
+                      ) : (
+                        <span className="text-slate-500">
+                          ✓ Plena fuerza probatoria sin atenuación (LR efectivo = {node.razon_verosimilitud.toFixed(2)}x).
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Optional editable reason for tacha / challenge */}
+                  <div className="mt-2 pt-2 border-t border-slate-200/60">
+                    <input
+                      type="text"
+                      placeholder="Causal u observación procesal de la impugnación (ej. Falta de cotejo notarial o peritaje de WhatsApp)..."
+                      value={nodeImpugnaciones[node.id] || node.motivo_impugnacion || ""}
+                      onChange={(e) => handleImpugnacionChange(node.id, e.target.value)}
+                      className="w-full text-xs px-2.5 py-1 bg-white border border-slate-200 rounded text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                    />
+                  </div>
                 </div>
               </div>
             );

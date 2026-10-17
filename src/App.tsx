@@ -11,7 +11,8 @@ import {
   RefreshCw,
   Scale,
   GitFork,
-  Database
+  Database,
+  ShieldCheck
 } from "lucide-react";
 import { Header } from "./components/Header";
 import { UploadZone } from "./components/UploadZone";
@@ -22,6 +23,9 @@ import { ContradictionsView } from "./components/ContradictionsView";
 import { EvidentiaryGapsView } from "./components/EvidentiaryGapsView";
 import { BayesianGraphView } from "./components/BayesianGraphView";
 import { ArgumentGraphView } from "./components/ArgumentGraphView";
+import { CustodyChainView } from "./components/CustodyChainView";
+import { JudicialReportModal } from "./components/JudicialReportModal";
+import { PrivacyModal } from "./components/PrivacyModal";
 import { ExportBar } from "./components/ExportBar";
 import { DocumentModal } from "./components/DocumentModal";
 import { PrintReport } from "./components/PrintReport";
@@ -38,11 +42,13 @@ export default function App() {
   const [loadingStep, setLoadingStep] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
-    "timeline" | "matrix" | "contradictions" | "gaps" | "bayesian" | "arguments"
+    "timeline" | "matrix" | "contradictions" | "gaps" | "bayesian" | "arguments" | "custody"
   >("timeline");
   const [selectedEventModal, setSelectedEventModal] = useState<TimelineEvent | null>(null);
   const [warningNotice, setWarningNotice] = useState<string | null>(null);
   const [isRestoredFromLocal, setIsRestoredFromLocal] = useState(false);
+  const [isJudicialReportOpen, setIsJudicialReportOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 
   // Restore analysis from localStorage on initial page load (Zero DB, Zero API cost on reload)
   useEffect(() => {
@@ -237,6 +243,8 @@ export default function App() {
         activeCaseId={activeCaseId}
         hasAnalysis={Boolean(analysis)}
         onNewAnalysis={handleNewAnalysis}
+        onOpenJudicialReport={() => setIsJudicialReportOpen(true)}
+        onOpenPrivacyPolicy={() => setIsPrivacyModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -287,6 +295,7 @@ export default function App() {
             onLoadSample={handleLoadSample}
             activeCaseId={activeCaseId}
             onClearCase={handleNewAnalysis}
+            onOpenPrivacyPolicy={() => setIsPrivacyModalOpen(true)}
           />
         </div>
 
@@ -339,7 +348,10 @@ export default function App() {
             </div>
 
             {/* Export Toolbar */}
-            <ExportBar analysis={analysis} />
+            <ExportBar
+              analysis={analysis}
+              onOpenJudicialReport={() => setIsJudicialReportOpen(true)}
+            />
 
             {/* Dashboard Navigation Tabs */}
             <div className="border-b border-slate-200 flex items-center gap-1 sm:gap-2 overflow-x-auto pb-px print:hidden">
@@ -428,6 +440,22 @@ export default function App() {
                   Toulmin
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("custody")}
+                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+                  activeTab === "custody"
+                    ? "border-emerald-600 text-emerald-800 bg-emerald-50/40"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Cadena de Custodia ({files.length || analysis.cadena_custodia?.length || 0})</span>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-mono px-1.5 py-0.2 rounded-full">
+                  SHA-256
+                </span>
+              </button>
             </div>
 
             {/* Restored from local cache banner */}
@@ -480,6 +508,10 @@ export default function App() {
               {activeTab === "arguments" && (
                 <ArgumentGraphView analysis={analysis} />
               )}
+
+              {activeTab === "custody" && (
+                <CustodyChainView files={files} analysis={analysis} />
+              )}
             </div>
 
             {/* Printable official legal layout */}
@@ -495,19 +527,65 @@ export default function App() {
             onClose={() => setSelectedEventModal(null)}
           />
         )}
+
+        {/* Formal Judicial Report Modal */}
+        {isJudicialReportOpen && analysis && (
+          <JudicialReportModal
+            analysis={analysis}
+            files={files}
+            onClose={() => setIsJudicialReportOpen(false)}
+          />
+        )}
+
+        {/* Peruvian Ley N° 29733 Privacy & Zero-Knowledge Modal */}
+        <PrivacyModal
+          isOpen={isPrivacyModalOpen}
+          onClose={() => setIsPrivacyModalOpen(false)}
+        />
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-6 mt-12 print:hidden text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-800">EvidenciaFácil</span>
-            <span aria-hidden="true">·</span>
-            <span>Democratizador de E-Discovery para Ciudadanos y Litigantes</span>
+      {/* Footer & Ley 29733 Peruvian Legal Disclaimer */}
+      <footer className="border-t border-slate-200 bg-white py-8 mt-12 print:hidden text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold mt-0.5">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-slate-900 text-xs">
+                    🇵🇪 Cumplimiento con la Ley N° 29733 — Ley de Protección de Datos Personales (Perú)
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                    Cero Servidores Privados
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-relaxed max-w-4xl">
+                  Garantía de confidencialidad absoluta: la información que usted ingresa (capturas de chats, contratos, imágenes, correos) <strong>NO está siendo enviada a ningún servidor privado ni base de datos</strong>. El creador y administrador de este sistema <strong>no tiene forma técnica ni acceso alguno para ver, registrar, interceptar ni descargar sus chats o archivos</strong>. Todo el procesamiento se realiza en la memoria local de su navegador (Privacy by Design).
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsPrivacyModalOpen(true)}
+              className="text-xs font-semibold px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors shrink-0 shadow-2xs cursor-pointer"
+            >
+              Ver Certificado Ley 29733
+            </button>
           </div>
 
-          <div className="text-center sm:text-right text-[11px] text-slate-400">
-            Procesamiento multimodal con Gemini API · Trazabilidad 1:1 · Cumplimiento de Admisibilidad Digital
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-400 text-[11px] pt-1">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-700">EvidenciaFácil</span>
+              <span aria-hidden="true">·</span>
+              <span>Democratizador de E-Discovery para Ciudadanos, Abogados y Peritos</span>
+            </div>
+
+            <div className="text-center sm:text-right">
+              Procesamiento local soberano · Hashing SHA-256 de cadena de custodia · Sin almacenamiento en bases de datos
+            </div>
           </div>
         </div>
       </footer>

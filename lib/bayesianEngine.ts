@@ -22,6 +22,8 @@ export interface BayesianEvidenceNode {
   probabilidad_si_hipotesis_falsa: number;  // P(E|~H) ej. 0.15
   justificacion_probabilistica: string;
   estado_observado: BayesianEvidenceState;
+  nivel_autenticidad?: number;              // P(A) en [0.0, 1.0] (1.0 = Indubitado, 0.5 = Cuestionado, 0.1 = Impugnado)
+  motivo_impugnacion?: string;              // Fundamentación de la tacha u objeción procesal
 }
 
 export interface BayesianHypothesis {
@@ -40,8 +42,12 @@ export interface BayesianNetworkTopology {
 }
 
 export interface BayesianCalculatedNode extends BayesianEvidenceNode {
-  razon_verosimilitud: number; // Likelihood Ratio (LR)
-  peso_evidencia_db: number;   // Weight of evidence en decibanes: 10 * log10(LR)
+  nivel_autenticidad: number;
+  motivo_impugnacion?: string;
+  razon_verosimilitud_nominal: number; // LR sin tacha
+  peso_evidencia_nominal_db: number;   // Decibanes nominales
+  razon_verosimilitud: number;         // LR efectivo considerando autenticidad (Cascaded Schum)
+  peso_evidencia_db: number;           // Decibanes efectivos: P(A) * W_nominal
   direccion_apoyo: "favorece_hipotesis" | "desfavorece_hipotesis" | "neutro";
   fuerza_probatoria: "Concluyente" | "Fuerte" | "Moderada" | "Débil" | "Inapreciable";
 }
@@ -75,41 +81,52 @@ export function clampProbability(p: number, min = 0.001, max = 0.999): number {
  */
 export function calculateNodeLikelihoodRatio(
   node: BayesianEvidenceNode,
-  state: BayesianEvidenceState = node.estado_observado
+  state: BayesianEvidenceState = node.estado_observado,
+  authenticity = node.nivel_autenticidad ?? 1.0
 ): {
   lr: number;
   weightDb: number;
+  lrNominal: number;
+  weightDbNominal: number;
   direction: "favorece_hipotesis" | "desfavorece_hipotesis" | "neutro";
   strength: "Concluyente" | "Fuerte" | "Moderada" | "Débil" | "Inapreciable";
 } {
   const pH = clampProbability(node.probabilidad_si_hipotesis_cierta);
   const pNotH = clampProbability(node.probabilidad_si_hipotesis_falsa);
+  const pAuth = Math.min(Math.max(isNaN(authenticity) ? 1.0 : authenticity, 0.0), 1.0);
 
-  let lr = 1.0;
+  let lrNominal = 1.0;
 
   if (state === "presente") {
-    lr = pH / pNotH;
+    lrNominal = pH / pNotH;
   } else if (state === "ausente") {
-    lr = (1 - pH) / (1 - pNotH);
+    lrNominal = (1 - pH) / (1 - pNotH);
   } else {
     // Desconocida: no aporta información al caso
-    lr = 1.0;
+    lrNominal = 1.0;
   }
 
-  // Weight of Evidence en decibanes (dB) según I.J. Good y Alan Turing:
-  // W = 10 * log10(LR)
-  const weightDb = lr > 0 ? 10 * Math.log10(lr) : 0;
+  // Weight of Evidence nominal en decibanes (dB) según I.J. Good y Alan Turing:
+  // W_nominal = 10 * log10(LR_nominal)
+  const weightDbNominal = lrNominal > 0 ? 10 * Math.log10(lrNominal) : 0;
 
-  // Dirección procesal
+  // Inferencia en cascada de 2 niveles (David Schum / Colin Aitken):
+  // Si la autenticidad P(A) es < 1.0 (tacha, impugnación o falta de peritaje),
+  // el peso probatorio se modula proporcionalmente hacia 0 dB (neutralidad):
+  // W_efectivo = P(A) * W_nominal => LR_efectivo = (LR_nominal)^P(A)
+  const weightDbEffective = pAuth * weightDbNominal;
+  const lrEffective = Math.pow(10, weightDbEffective / 10);
+
+  // Dirección procesal según LR efectivo
   let direction: "favorece_hipotesis" | "desfavorece_hipotesis" | "neutro" = "neutro";
-  if (lr > 1.05) {
+  if (lrEffective > 1.05) {
     direction = "favorece_hipotesis";
-  } else if (lr < 0.95) {
+  } else if (lrEffective < 0.95) {
     direction = "desfavorece_hipotesis";
   }
 
   // Escala de fuerza probatoria estándar en ciencias forenses y prueba judicial (ENFSI / Aitken & Taroni)
-  const absDb = Math.abs(weightDb);
+  const absDb = Math.abs(weightDbEffective);
   let strength: "Concluyente" | "Fuerte" | "Moderada" | "Débil" | "Inapreciable" = "Inapreciable";
   if (absDb >= 20) {
     strength = "Concluyente"; // LR >= 100
@@ -123,7 +140,14 @@ export function calculateNodeLikelihoodRatio(
     strength = "Inapreciable";
   }
 
-  return { lr, weightDb, direction, strength };
+  return {
+    lr: Number(lrEffective.toFixed(3)),
+    weightDb: Number(weightDbEffective.toFixed(2)),
+    lrNominal: Number(lrNominal.toFixed(3)),
+    weightDbNominal: Number(weightDbNominal.toFixed(2)),
+    direction,
+    strength
+  };
 }
 
 /**
@@ -159,9 +183,9 @@ export function getLegalStandard(posteriorProb: number): {
 
 /**
  * Ejecuta la actualización bayesiana determinista completa sobre una red
- * utilizando la formulación de Odds y Teorema de Bayes:
+ * utilizando la formulación de Odds y Teorema de Bayes con atenuación de 2 niveles por autenticidad:
  * 
- * Posterior Odds = Prior Odds * Product(LR_i)
+ * Posterior Odds = Prior Odds * Product(LR_efectivo_i)
  * Posterior Prob = Posterior Odds / (1 + Posterior Odds)
  */
 export function runBayesianInference(
@@ -170,6 +194,8 @@ export function runBayesianInference(
     priorProbability?: number;
     nodeStates?: Record<string, BayesianEvidenceState>;
     nodeLikelihoods?: Record<string, { pH: number; pNotH: number }>;
+    nodeAuthenticity?: Record<string, number>;
+    nodeImpugnaciones?: Record<string, string>;
   }
 ): BayesianInferenceResult {
   const priorProb = clampProbability(
@@ -185,10 +211,14 @@ export function runBayesianInference(
   const calculatedNodes: BayesianCalculatedNode[] = (network.evidencias || []).map((node) => {
     const currentState = overrides?.nodeStates?.[node.id] ?? node.estado_observado ?? "presente";
     const customLikelihoods = overrides?.nodeLikelihoods?.[node.id];
+    const currentAuthenticity = overrides?.nodeAuthenticity?.[node.id] ?? node.nivel_autenticidad ?? 1.0;
+    const currentImpugnacion = overrides?.nodeImpugnaciones?.[node.id] ?? node.motivo_impugnacion;
 
     const effectiveNode: BayesianEvidenceNode = {
       ...node,
       estado_observado: currentState,
+      nivel_autenticidad: currentAuthenticity,
+      motivo_impugnacion: currentImpugnacion,
       probabilidad_si_hipotesis_cierta: customLikelihoods
         ? customLikelihoods.pH
         : node.probabilidad_si_hipotesis_cierta,
@@ -197,9 +227,10 @@ export function runBayesianInference(
         : node.probabilidad_si_hipotesis_falsa
     };
 
-    const { lr, weightDb, direction, strength } = calculateNodeLikelihoodRatio(
+    const { lr, weightDb, lrNominal, weightDbNominal, direction, strength } = calculateNodeLikelihoodRatio(
       effectiveNode,
-      currentState
+      currentState,
+      currentAuthenticity
     );
 
     cumulativeLR *= lr;
@@ -207,8 +238,12 @@ export function runBayesianInference(
 
     return {
       ...effectiveNode,
-      razon_verosimilitud: Number(lr.toFixed(3)),
-      peso_evidencia_db: Number(weightDb.toFixed(2)),
+      nivel_autenticidad: currentAuthenticity,
+      motivo_impugnacion: currentImpugnacion,
+      razon_verosimilitud_nominal: lrNominal,
+      peso_evidencia_nominal_db: weightDbNominal,
+      razon_verosimilitud: lr,
+      peso_evidencia_db: weightDb,
       direccion_apoyo: direction,
       fuerza_probatoria: strength
     };

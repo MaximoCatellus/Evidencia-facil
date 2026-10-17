@@ -1,34 +1,49 @@
 import React from "react";
-import { Scale, ShieldCheck, FileSearch, Sparkles, BookOpen, Download } from "lucide-react";
+import { Scale, ShieldCheck, FileText } from "lucide-react";
 
 interface HeaderProps {
   onLoadSample: (caseId: string) => void;
   activeCaseId?: string;
   hasAnalysis: boolean;
   onNewAnalysis: () => void;
+  onOpenJudicialReport?: () => void;
+  onOpenPrivacyPolicy?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onLoadSample,
   activeCaseId,
   hasAnalysis,
-  onNewAnalysis
+  onNewAnalysis,
+  onOpenJudicialReport,
+  onOpenPrivacyPolicy
 }) => {
   return (
     <header className="border-b border-slate-200 bg-white/95 backdrop-blur-sm sticky top-0 z-30 print:hidden">
       {/* Top Legal Ethics & Disclaimer Banner */}
-      <div className="bg-slate-900 text-slate-300 px-4 py-1.5 text-xs font-normal">
+      <div className="bg-slate-900 text-slate-300 px-4 py-2 text-xs font-normal border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 font-semibold text-[11px]">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              🇵🇪 Ley N° 29733 (Perú)
+            </span>
             <span>
-              <strong className="text-white font-medium">Principio de Transparencia y Trazabilidad Forense:</strong> Esta herramienta organiza información fáctica y no emite juicios de valor ni sustituye el criterio legal o judicial.
+              <strong className="text-white font-medium">Privacidad Total:</strong> Tus archivos y chats <strong>NO se envían a ningún servidor privado</strong> y el administrador <strong>NO tiene forma de verlos</strong>.
             </span>
           </div>
-          <div className="flex items-center gap-3 text-[11px] text-slate-400">
-            <span>Auditabilidad 1:1</span>
-            <span aria-hidden="true">·</span>
-            <span>Gemini AI E-Discovery</span>
+          <div className="flex items-center gap-3 text-[11px] text-slate-300 shrink-0">
+            {onOpenPrivacyPolicy && (
+              <button
+                type="button"
+                onClick={onOpenPrivacyPolicy}
+                className="text-amber-400 hover:text-amber-300 underline font-medium cursor-pointer transition-colors"
+              >
+                Garantía Ley 29733
+              </button>
+            )}
+            <span aria-hidden="true" className="text-slate-600">·</span>
+            <span className="text-slate-400">Procesamiento Local</span>
           </div>
         </div>
       </div>
@@ -79,25 +94,28 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {hasAnalysis && (
-            <button
-              type="button"
-              onClick={onNewAnalysis}
-              className="ml-1 text-xs px-3 py-1.5 rounded-md font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200"
-            >
-              + Nuevo Análisis
-            </button>
-          )}
+            <>
+              {onOpenJudicialReport && (
+                <button
+                  type="button"
+                  onClick={onOpenJudicialReport}
+                  className="ml-1 text-xs px-3 py-1.5 rounded-md font-semibold bg-amber-400 hover:bg-amber-500 text-slate-950 transition-colors shadow-2xs inline-flex items-center gap-1.5"
+                  title="Abrir Dictamen Pericial Judicial completo con modelado bayesiano y cadena de custodia"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Dictamen Pericial</span>
+                </button>
+              )}
 
-          {/* Direct Download ZIP button */}
-          <a
-            href="/api/download-zip"
-            download="evidencia-facil-proyecto.zip"
-            className="ml-1 text-xs px-3 py-1.5 rounded-md font-medium bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs"
-            title="Descargar todos los archivos del proyecto comprimidos en .ZIP"
-          >
-            <Download className="w-3.5 h-3.5 text-emerald-700" />
-            <span>Descargar Código (.ZIP)</span>
-          </a>
+              <button
+                type="button"
+                onClick={onNewAnalysis}
+                className="text-xs px-3 py-1.5 rounded-md font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200"
+              >
+                + Nuevo Análisis
+              </button>
+            </>
+          )}
         </div>
       </div>
     </header>

@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { Printer, Download, FileCode, Check, Copy } from "lucide-react";
+import { Printer, Download, FileCode, Check, Copy, Award } from "lucide-react";
 import { AnalysisResult } from "../types/ediscovery";
 
 interface ExportBarProps {
   analysis: AnalysisResult;
+  onOpenJudicialReport?: () => void;
 }
 
-export const ExportBar: React.FC<ExportBarProps> = ({ analysis }) => {
+export const ExportBar: React.FC<ExportBarProps> = ({ analysis, onOpenJudicialReport }) => {
   const [copied, setCopied] = useState(false);
 
   // Generate clean Markdown representation
@@ -120,6 +121,19 @@ export const ExportBar: React.FC<ExportBarProps> = ({ analysis }) => {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        {/* Formal Judicial Dictamen Modal Button */}
+        {onOpenJudicialReport && (
+          <button
+            type="button"
+            onClick={onOpenJudicialReport}
+            className="flex-1 sm:flex-none px-3.5 py-2 text-xs font-bold bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 shadow-2xs"
+            title="Abrir Dictamen Pericial Judicial completo con modelado bayesiano y cadena de custodia"
+          >
+            <Award className="w-3.5 h-3.5" />
+            <span>Dictamen Pericial Judicial</span>
+          </button>
+        )}
+
         {/* Print / PDF Button */}
         <button
           type="button"

@@ -63,6 +63,8 @@ export interface BayesianEvidenceNode {
   probabilidad_si_hipotesis_falsa: number;  // P(E|~H) e.g. 0.15
   justificacion_probabilistica: string;
   estado_observado: BayesianEvidenceState;
+  nivel_autenticidad?: number;              // P(A) en rango [0.0, 1.0] - Nivel 2: Integridad / Tacha
+  motivo_impugnacion?: string;              // Causal o fundamentación de la tacha u objeción procesal
 }
 
 export interface BayesianHypothesis {
@@ -81,8 +83,12 @@ export interface BayesianNetworkTopology {
 }
 
 export interface BayesianCalculatedNode extends BayesianEvidenceNode {
-  razon_verosimilitud: number; // Likelihood Ratio (LR)
-  peso_evidencia_db: number;   // Weight of evidence in decibans: 10 * log10(LR)
+  nivel_autenticidad: number;
+  motivo_impugnacion?: string;
+  razon_verosimilitud_nominal: number; // LR sin atenuación de tacha
+  peso_evidencia_nominal_db: number;   // Decibanes nominales
+  razon_verosimilitud: number;         // LR efectivo considerando autenticidad (Cascaded Schum)
+  peso_evidencia_db: number;           // Weight of evidence efectivo en decibanes: P(A) * W_nominal
   direccion_apoyo: "favorece_hipotesis" | "desfavorece_hipotesis" | "neutro";
   fuerza_probatoria: "Concluyente" | "Fuerte" | "Moderada" | "Débil" | "Inapreciable";
 }
@@ -121,6 +127,20 @@ export interface ArgumentScheme {
   garantia_inferencia: string;
 }
 
+export interface CustodyChainItem {
+  id: string;
+  nombre_archivo: string;
+  tipo: string;
+  tamano_bytes: number;
+  sha256: string;
+  fecha_fijacion: string;
+  algoritmo: string;
+  estado_integridad: "Intacto / Verificado" | "Sin Verificar" | "Impugnado / Observado";
+  hechos_relacionados: string[];
+  evidencias_relacionadas: string[];
+  observaciones_forenses?: string;
+}
+
 export interface AnalysisResult {
   resumen_caso: CaseSummary;
   cronologia: TimelineEvent[];
@@ -130,6 +150,7 @@ export interface AnalysisResult {
   esquema_argumental?: ArgumentScheme;
   recomendaciones_legales: string[];
   metadata_analisis: AnalysisMetadata;
+  cadena_custodia?: CustodyChainItem[];
 }
 
 export interface UploadedFile {
@@ -143,5 +164,7 @@ export interface UploadedFile {
   previewUrl?: string;
   textContent?: string;
   category?: "chat" | "email" | "contract" | "receipt" | "other";
+  sha256?: string;
+  timestamp_ingesta?: string;
 }
 
