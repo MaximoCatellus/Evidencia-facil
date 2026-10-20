@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   BookOpen
 } from "lucide-react";
+import { Analytics } from "@vercel/analytics/react";
 import { Header } from "./components/Header";
 import { UploadZone } from "./components/UploadZone";
 import { ExecutiveSummary } from "./components/ExecutiveSummary";
@@ -633,6 +634,7 @@ export default function App() {
           </div>
         </div>
       </footer>
+      <Analytics />
     </div>
   );
 }
