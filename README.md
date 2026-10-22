@@ -104,6 +104,114 @@ La aplicación implementa de manera estricta los principios de la **Ley N° 2973
 
 ---
 
+## 🏗️ Arquitectura de Software
+
+*EvidenciaFácil* opera bajo un modelo arquitectónico **Zero-Knowledge / Edge-First**. Todo el cómputo sensible, la extracción de documentos, el cálculo de huellas criptográficas y las matemáticas bayesianas se ejecutan directamente en la memoria del navegador del usuario.
+
+### 1. Diagrama de Capas y Componentes (C4 Containers)
+
+```mermaid
+graph TB
+    subgraph Client["🖥️ Cliente / Navegador del Usuario (Memoria Local & Edge)"]
+        UI["🎨 Capa de Interfaz (React 19 + Tailwind)
+        • UploadZone (Drag & Drop)
+        • BayesianView & ToulminGraph
+        • ChronologyView & AuditReport
+        • JudicialReportModal & PrintReport"]
+
+        subgraph ClientPipelines["⚡ Motores de Preprocesamiento Local (Edge Pipeline)"]
+            Crypto["🔐 Web Crypto API
+            (Hash SHA-256 ISO/IEC 27037)"]
+            PDF["📄 PDF.js Worker
+            (Extracción de texto en cliente)"]
+            Canvas["🖼️ HTML5 Canvas
+            (Compresión / Redimensión WebP)"]
+        end
+
+        subgraph DeterministicEngines["🧮 Motores Matemáticos Deterministas"]
+            Baye["📊 Bayesian Engine
+            (Priors, Bayes Factor, Decibeles Alan Turing)"]
+            Chrono["⏳ Chronology Engine
+            (Ordenación temporal & Lagunas >15d)"]
+            Toul["⚖️ Toulmin Logic Engine
+            (Pretensión, Datos, Garantía, Respaldo)"]
+        end
+
+        LocalStorage[("💾 LocalStorage
+        Persistencia Soberana en Dispositivo")]
+    end
+
+    subgraph BackendGateway["🛡️ Backend Proxy / BFF (Express / Serverless)"]
+        Proxy["/api/analyze & /api/gemini
+        (Sin almacenamiento en BD ni logs de archivos)"]
+    end
+
+    subgraph AICloud["☁️ Google Gemini API"]
+        LLM["🤖 Gemini Flash
+        • Extracción Forense Multimodal
+        • Validación de JSON Schema Estricto
+        • Detección de Contradicciones"]
+    end
+
+    UI --> Crypto
+    UI --> PDF
+    UI --> Canvas
+    Crypto --> UI
+    PDF --> UI
+    Canvas --> UI
+
+    UI -->|Texto extraído e imágenes optimizadas| Proxy
+    Proxy -->|Payload efímero| LLM
+    LLM -->|JSON estructurado forense| Proxy
+    Proxy -->|JSON respuesta| UI
+
+    UI --> Baye
+    UI --> Chrono
+    UI --> Toul
+
+    UI <-->|Guardar / Cargar Caso Soberano| LocalStorage
+```
+
+### 2. Diagrama de Secuencia: Flujo Forense de Datos e Inmutabilidad
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Abogado as ⚖️ Abogado / Perito
+    participant Browser as 🖥️ Navegador (React UI)
+    participant Crypto as 🔐 Web Crypto API
+    participant Prep as ⚡ Preprocesador (PDF.js / Canvas)
+    participant LocalDB as 💾 LocalStorage
+    participant Proxy as 🛡️ Backend Proxy
+    participant Gemini as ☁️ Google Gemini Flash
+
+    Abogado->>Browser: Selecciona o arrastra evidencias (PDF, PNG, JPG, TXT)
+    activate Browser
+    Browser->>Crypto: Genera huella digital inmutable (SHA-256)
+    Crypto-->>Browser: Hash SHA-256 (ISO/IEC 27037)
+    Browser->>Prep: Extrae texto (PDF.js) y optimiza imágenes (Canvas)
+    Prep-->>Browser: Texto limpio y assets comprimidos
+    
+    Browser->>Proxy: POST /api/analyze (Texto + imágenes optimizadas)
+    activate Proxy
+    Proxy->>Gemini: Solicitud con JSON Schema forense estricto
+    activate Gemini
+    Gemini-->>Proxy: JSON: Hechos, Fechas, Contradicciones, Partes, Toulmin
+    deactivate Gemini
+    Proxy-->>Browser: Entrega JSON estructurado (sin persistencia en servidor)
+    deactivate Proxy
+
+    Browser->>Browser: Ejecuta Bayesian Engine (Priors, Verosimilitud, Decibeles)
+    Browser->>Browser: Ejecuta Chronology Engine (Detección de lagunas y anomalías)
+    Browser->>Browser: Construye Grafo Argumentativo de Toulmin
+    Browser->>LocalDB: Almacenamiento opcional soberano en dispositivo
+
+    Browser-->>Abogado: Muestra Dashboard pericial, alertas de contradicciones y acta judicial lista
+    deactivate Browser
+```
+
+---
+
 ## 🛠️ Stack Tecnológico
 
 * **Frontend:** React 19, TypeScript, Tailwind CSS, Lucide Icons.
