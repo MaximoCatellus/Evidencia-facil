@@ -225,27 +225,123 @@ sequenceDiagram
 
 ---
 
-## 💻 Instalación y Ejecución Local
+## 💻 Instalación y Montaje Local
 
-### 1. Clonar el repositorio
+Esta guía te permite desplegar y ejecutar **EvidenciaFácil** en cualquier computadora personal (Windows, macOS o Linux) en menos de 3 minutos.
+
+### 📋 Requisitos Previos
+
+* **Node.js**: Versión `18.x`, `20.x` o superior instalada ([Descargar Node.js](https://nodejs.org/)).
+* **Gestor de paquetes**: `npm` (incluido automáticamente con Node.js).
+* **Navegador Web**: Chrome, Edge, Firefox, Brave o Safari.
+
+---
+
+### 📂 Paso 1: Obtener el Código Fuente
+
+Tienes dos alternativas para descargar el proyecto en tu equipo:
+
+* **Opción A (Descarga directa en 1 clic — Sin Git):**
+  Puedes descargar todo el código empaquetado en un archivo `.zip` ingresando en tu navegador a:
+  ```text
+  http://localhost:3000/api/download-zip
+  ```
+  *(o haciendo clic en el botón de descarga en la barra superior de la app)*. Descomprime el archivo `.zip` en la carpeta de tu preferencia.
+
+* **Opción B (Clonar con Git):**
+  Abre tu terminal y clona el repositorio:
+  ```bash
+  git clone https://github.com/tu-usuario/evidencia-facil.git
+  cd evidencia-facil
+  ```
+
+---
+
+### 📦 Paso 2: Instalar Dependencias
+
+Desde la terminal, ubicado en la raíz del proyecto, ejecuta:
+
 ```bash
-git clone https://github.com/tu-usuario/evidencia-facil.git
-cd evidencia-facil
 npm install
 ```
 
-### 2. Configurar la clave de Gemini
-Obtén una clave de API gratuita en [Google AI Studio](https://aistudio.google.com/app/apikey).
-Crea tu archivo `.env.local`:
-```env
-GEMINI_API_KEY="AIzaSyTuClaveDeGeminiAqui"
+Este comando instalará:
+* **Frontend:** React 19, Lucide Icons, Motion, Tailwind CSS v4.
+* **Backend y Servidor:** Express, `@google/genai`, `dotenv`, `jszip`.
+* **Herramientas de compilación:** Vite, TypeScript, `tsx`, esbuild.
+
+---
+
+### 🔑 Paso 3: Configuración de Variables de Entorno
+
+Copia el archivo `.env.example` o crea un archivo llamado **`.env`** en la raíz del proyecto:
+
+```bash
+cp .env.example .env
 ```
 
-### 3. Iniciar el entorno de desarrollo
+Edita el archivo `.env` con tu clave de API:
+
+```env
+# Clave de Gemini (Google AI Studio)
+GEMINI_API_KEY="AIzaSyTuClaveDeGeminiAqui"
+
+# Puerto local del servidor (por defecto 3000)
+PORT=3000
+```
+
+> 💡 **¿Dónde obtener la clave?** Puedes obtener una clave de API gratuita en [Google AI Studio](https://aistudio.google.com/app/apikey).
+> 
+> 🛡️ **Modo Demostración Offline:** Si decides no configurar una clave de API (dejando el campo vacío), la aplicación arrancará normalmente y utilizará de forma automática su motor procesal local estructurado para que puedas probar la interfaz, el cálculo del hash SHA-256 en cliente, la red bayesiana y los reportes judiciales sin restricciones.
+
+---
+
+### 🚀 Paso 4: Iniciar el Servicio
+
+Para iniciar el servidor de desarrollo, ejecuta:
+
 ```bash
 npm run dev
 ```
-Abre en tu navegador: [http://localhost:3000](http://localhost:3000)
+
+Abre tu navegador en:
+👉 **[http://localhost:3000](http://localhost:3000)**
+
+---
+
+### 🧩 ¿Qué archivo levanta el servicio y cómo funciona?
+
+El punto de entrada unificado y responsable de levantar todo el servicio es:
+
+#### 📄 `server.ts`
+
+Este archivo implementa una arquitectura híbrida **Full-Stack (Express + Vite Middleware)**:
+
+1. **Orquestación del Servidor HTTP:**
+   - `server.ts` inicializa una instancia de **Express** escuchando en el puerto `3000` (`0.0.0.0:3000`).
+   - Configura límites de payload de hasta `50MB` (`express.json({ limit: "50mb" })`) para admitir la ingesta de documentos pesados e imágenes forenses codificadas en base64.
+
+2. **Endpoints de la API Backend:**
+   - **`POST /api/analyze`**: Recibe las evidencias y metadatos preprocesados en el cliente, aplica validación y sanitización contra *Prompt Injections*, e interactúa con el SDK `@google/genai` (modelos `gemini-3.1-flash-lite` / `gemini-3.8-flash`) forzando respuesta JSON estructurada pericial. Si la API no está disponible o no hay clave, deriva la solicitud al generador determinista interno.
+   - **`GET /api/download-zip`**: Empaqueta dinámicamente el proyecto en memoria (excluyendo `node_modules` y carpetas de build) mediante `jszip` para permitir su descarga directa.
+   - **`GET /api/health`**: Verifica el estado de operatividad del servicio y disponibilidad de credenciales.
+
+3. **Integración con Vite (Modo Desarrollo vs. Producción):**
+   - **En Desarrollo (`npm run dev`):** En `package.json`, el script ejecuta `tsx server.ts`. La función `startServer()` crea una instancia de Vite con `createServer({ server: { middlewareMode: true } })` y monta sus middlewares dentro de Express (`app.use(vite.middlewares)`). Esto permite tener la SPA de React con recarga rápida (HMR) y la API backend en un **mismo puerto (3000)** sin necesidad de configurar proxies inversos separados.
+   - **En Producción (`npm run start`):** Sirve directamente los archivos estáticos precompilados en la carpeta `dist/` a través de `express.static()` con captura de rutas para Single Page Application (`app.get("*", ...)`).
+
+---
+
+### 📑 Resumen de Comandos
+
+| Comando | Acción |
+| :--- | :--- |
+| `npm install` | Descarga e instala todas las dependencias del proyecto. |
+| `npm run dev` | Ejecuta `tsx server.ts` levantando la API y Vite en `http://localhost:3000`. |
+| `npm run lint` | Ejecuta la verificación estricta de tipos de TypeScript (`tsc --noEmit`). |
+| `npm run build` | Compila y optimiza el frontend en la carpeta de producción `dist/`. |
+| `npm run start` | Inicia el servidor `server.ts` sirviendo los estáticos optimizados. |
+| `npm run clean` | Elimina las carpetas temporales de compilación (`dist`, `build`, `server.js`). |
 
 ---
 
