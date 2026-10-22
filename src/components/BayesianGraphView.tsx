@@ -33,8 +33,8 @@ interface BayesianGraphViewProps {
 export const BayesianGraphView: React.FC<BayesianGraphViewProps> = ({ network: initialNetwork }) => {
   // Fallback default network if none is supplied in the analysis
   const defaultNetwork: BayesianNetworkTopology = useMemo(() => {
-    return (
-      initialNetwork || {
+    if (!initialNetwork) {
+      return {
         hipotesis: {
           id: "H-DEFAULT",
           descripcion: "Pretensión o hipótesis jurídica central del litigio",
@@ -57,8 +57,21 @@ export const BayesianGraphView: React.FC<BayesianGraphViewProps> = ({ network: i
           }
         ],
         tesis_probatoria: "La articulación de indicios concordantes conduce a un estándar de convicción fundada."
-      }
-    );
+      };
+    }
+    return {
+      ...initialNetwork,
+      hipotesis: initialNetwork.hipotesis || {
+        id: "H-DEFAULT",
+        descripcion: "Pretensión o hipótesis jurídica central del litigio",
+        estado_positivo: "Acreditado / Estimación",
+        estado_negativo: "No acreditado / Desestimación",
+        probabilidad_a_priori: 0.5,
+        fundamentacion_previa: "Punto de partida neutral (50%) garantizando imparcialidad procesal."
+      },
+      evidencias: Array.isArray(initialNetwork.evidencias) ? initialNetwork.evidencias : [],
+      tesis_probatoria: initialNetwork.tesis_probatoria || ""
+    };
   }, [initialNetwork]);
 
   // Working copy of network (allows adding nodes)
@@ -124,7 +137,7 @@ export const BayesianGraphView: React.FC<BayesianGraphViewProps> = ({ network: i
     type: "pH" | "pNotH",
     value: number
   ) => {
-    const defaultNode = network.evidencias.find((n) => n.id === nodeId);
+    const defaultNode = (network.evidencias || []).find((n) => n.id === nodeId);
     const current = nodeLikelihoods[nodeId] || {
       pH: defaultNode?.probabilidad_si_hipotesis_cierta ?? 0.85,
       pNotH: defaultNode?.probabilidad_si_hipotesis_falsa ?? 0.15
@@ -183,7 +196,7 @@ export const BayesianGraphView: React.FC<BayesianGraphViewProps> = ({ network: i
 
     setNetwork((prev) => ({
       ...prev,
-      evidencias: [...prev.evidencias, newEvidence]
+      evidencias: [...(prev.evidencias || []), newEvidence]
     }));
 
     setNewNodeName("");

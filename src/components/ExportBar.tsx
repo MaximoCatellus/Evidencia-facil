@@ -14,8 +14,8 @@ export const ExportBar: React.FC<ExportBarProps> = ({ analysis, onOpenJudicialRe
   const generateMarkdown = () => {
     const s = analysis.resumen_caso;
     let md = `# INFORME PERICIAL DE E-DISCOVERY Y CRONOLOGÍA PROCESAL\n\n`;
-    md += `**CASO:** ${s.titulo_caso}\n`;
-    md += `**PERIODO:** ${s.periodo_temporal.inicio} a ${s.periodo_temporal.fin}\n`;
+    md += `**CASO:** ${s?.titulo_caso || "Expediente Digital"}\n`;
+    md += `**PERIODO:** ${s?.periodo_temporal?.inicio || "Inicio documentado"} a ${s?.periodo_temporal?.fin || "Fin documentado"}\n`;
     md += `**FECHA DE DICTAMEN:** ${new Date().toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}\n\n`;
 
     md += `## 1. RESUMEN EJECUTIVO\n\n${s.resumen_ejecutivo}\n\n`;
@@ -60,9 +60,15 @@ export const ExportBar: React.FC<ExportBarProps> = ({ analysis, onOpenJudicialRe
       });
     }
 
-    if (analysis.recomendaciones_legales.length > 0) {
+    const recs = Array.isArray(analysis.recomendaciones_legales)
+      ? analysis.recomendaciones_legales
+      : typeof analysis.recomendaciones_legales === "string"
+      ? [analysis.recomendaciones_legales]
+      : [];
+
+    if (recs.length > 0) {
       md += `## 6. RECOMENDACIONES DE ESTRATEGIA PROCESAL\n\n`;
-      analysis.recomendaciones_legales.forEach((rec, idx) => {
+      recs.forEach((rec, idx) => {
         md += `${idx + 1}. ${rec}\n`;
       });
       md += `\n`;

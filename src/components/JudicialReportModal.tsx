@@ -50,8 +50,8 @@ export const JudicialReportModal: React.FC<JudicialReportModalProps> = ({
     txt += `========================================================================================\n\n`;
 
     txt += `I. OBJETO DE LA PERICIA Y CARÁTULA\n`;
-    txt += `Caso: ${s.titulo_caso}\n`;
-    txt += `Periodo Documentado: ${s.periodo_temporal.inicio} al ${s.periodo_temporal.fin}\n`;
+    txt += `Caso: ${s?.titulo_caso || "Expediente Digital"}\n`;
+    txt += `Periodo Documentado: ${s?.periodo_temporal?.inicio || "Inicio documentado"} al ${s?.periodo_temporal?.fin || "Fin documentado"}\n`;
     txt += `Resumen Fáctico:\n${s.resumen_ejecutivo}\n\n`;
 
     if (bayesianResult && analysis.red_bayesiana) {
@@ -80,15 +80,16 @@ export const JudicialReportModal: React.FC<JudicialReportModalProps> = ({
     }
 
     txt += `III. CRONOLOGÍA PROCESAL DE HECHOS (TRAZABILIDAD 1:1)\n`;
-    analysis.cronologia.forEach((ev) => {
+    (Array.isArray(analysis.cronologia) ? analysis.cronologia : []).forEach((ev) => {
       txt += `- [${ev.fecha_hora}] ${ev.hecho} (Relevancia: ${ev.relevancia})\n`;
       txt += `  Fuente: ${ev.fuente_documental} | Cita Literal: "${ev.cita_o_referencia}"\n`;
     });
     txt += `\n`;
 
-    if (analysis.vacios_probatorios.length > 0) {
+    const vaciosList = Array.isArray(analysis.vacios_probatorios) ? analysis.vacios_probatorios : [];
+    if (vaciosList.length > 0) {
       txt += `IV. VACÍOS PROBATORIOS Y RIESGOS DE ORFANDAD PROBATORIA\n`;
-      analysis.vacios_probatorios.forEach((g) => {
+      vaciosList.forEach((g) => {
         txt += `- [${g.id}] ${g.descripcion} (Prioridad: ${g.prioridad})\n`;
         txt += `  Periodo afectado: ${g.hecho_o_periodo_afectado}\n`;
         txt += `  Riesgo Procesal: ${g.riesgo_procesal}\n`;
@@ -97,7 +98,7 @@ export const JudicialReportModal: React.FC<JudicialReportModalProps> = ({
     }
 
     txt += `V. REGISTRO DE CADENA DE CUSTODIA (HUELLAS HASH SHA-256)\n`;
-    files.forEach((f, idx) => {
+    (Array.isArray(files) ? files : []).forEach((f, idx) => {
       txt += `[${idx + 1}] ${f.name}\n`;
       txt += `    Hash SHA-256: ${f.sha256 || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}\n`;
       txt += `    Tamaño: ${(f.size / 1024).toFixed(1)} KB | Estado: Intacto y Verificado\n\n`;
@@ -320,7 +321,7 @@ export const JudicialReportModal: React.FC<JudicialReportModalProps> = ({
               <div>
                 <span className="text-slate-500 block">Periodo Controversial Documentado:</span>
                 <strong className="text-slate-800">
-                  {analysis.resumen_caso.periodo_temporal.inicio} a {analysis.resumen_caso.periodo_temporal.fin}
+                  {analysis?.resumen_caso?.periodo_temporal?.inicio || "Inicio documentado"} a {analysis?.resumen_caso?.periodo_temporal?.fin || "Fin documentado"}
                 </strong>
               </div>
               <div>
@@ -482,8 +483,8 @@ export const JudicialReportModal: React.FC<JudicialReportModalProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {analysis.cronologia.map((ev) => (
-                    <tr key={ev.id}>
+                  {(Array.isArray(analysis.cronologia) ? analysis.cronologia : []).map((ev, idx) => (
+                    <tr key={ev.id || `cron-${idx}`}>
                       <td className="border border-slate-300 p-2 font-mono font-bold text-slate-800 text-[11px]">
                         {ev.fecha_hora}
                       </td>
@@ -508,14 +509,14 @@ export const JudicialReportModal: React.FC<JudicialReportModalProps> = ({
           </div>
 
           {/* Section 4: Evidentiary Gaps */}
-          {analysis.vacios_probatorios.length > 0 && (
+          {Array.isArray(analysis.vacios_probatorios) && analysis.vacios_probatorios.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-1 mb-3 font-sans">
                 IV. Dictamen sobre Vacíos Probatorios y Silencio Procesal
               </h2>
               <div className="space-y-3 font-sans text-xs">
-                {analysis.vacios_probatorios.map((gap) => (
-                  <div key={gap.id} className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg">
+                {analysis.vacios_probatorios.map((gap, idx) => (
+                  <div key={gap.id || `gap-${idx}`} className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg">
                     <div className="flex justify-between font-bold text-amber-950 mb-1">
                       <span>[{gap.id}] {gap.descripcion}</span>
                       <span className="text-[11px] px-2 py-0.5 bg-amber-200 text-amber-900 rounded">

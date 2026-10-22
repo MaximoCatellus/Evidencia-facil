@@ -1,5 +1,5 @@
 import React from "react";
-import { Scale, ShieldCheck, FileText, BookOpen } from "lucide-react";
+import { Scale, ShieldCheck, FileText, BookOpen, MessageSquarePlus } from "lucide-react";
 
 interface HeaderProps {
   onLoadSample: (caseId: string) => void;
@@ -9,6 +9,7 @@ interface HeaderProps {
   onOpenJudicialReport?: () => void;
   onOpenPrivacyPolicy?: () => void;
   onOpenGuide?: () => void;
+  onOpenFeedback?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -18,7 +19,8 @@ export const Header: React.FC<HeaderProps> = ({
   onNewAnalysis,
   onOpenJudicialReport,
   onOpenPrivacyPolicy,
-  onOpenGuide
+  onOpenGuide,
+  onOpenFeedback
 }) => {
   return (
     <header className="border-b border-slate-200 bg-white/95 backdrop-blur-sm sticky top-0 z-30 print:hidden">
@@ -123,11 +125,23 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onOpenGuide}
-              className="text-xs px-3 py-1.5 rounded-md font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors border border-slate-300 inline-flex items-center gap-1.5 shadow-2xs"
+              className="text-xs px-3 py-1.5 rounded-md font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors border border-slate-300 inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
               title="Abrir Guía Metodológica, explicación de evaluación bayesiana y manual de uso"
             >
               <BookOpen className="w-3.5 h-3.5 text-blue-600" />
               <span>Guía de Uso</span>
+            </button>
+          )}
+
+          {onOpenFeedback && (
+            <button
+              type="button"
+              onClick={onOpenFeedback}
+              className="text-xs px-3 py-1.5 rounded-md font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors border border-blue-200 inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+              title="Dejar sugerencias anónimas o responder la encuesta para mejorar el sistema"
+            >
+              <MessageSquarePlus className="w-3.5 h-3.5 text-blue-600" />
+              <span className="hidden sm:inline">Sugerencias</span>
             </button>
           )}
         </div>

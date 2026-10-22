@@ -395,9 +395,9 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {files.map((file) => (
+            {files.map((file, idx) => (
               <div
-                key={file.id}
+                key={`upload-file-${file.id || "doc"}-${idx}-${file.name || "item"}`}
                 className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white shadow-xs hover:border-slate-300 transition-colors group"
               >
                 <div className="flex items-center gap-3 min-w-0">

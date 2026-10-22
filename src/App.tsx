@@ -13,7 +13,8 @@ import {
   GitFork,
   Database,
   ShieldCheck,
-  BookOpen
+  BookOpen,
+  MessageSquarePlus
 } from "lucide-react";
 import { Header } from "./components/Header";
 import { UploadZone } from "./components/UploadZone";
@@ -28,6 +29,7 @@ import { CustodyChainView } from "./components/CustodyChainView";
 import { JudicialReportModal } from "./components/JudicialReportModal";
 import { PrivacyModal } from "./components/PrivacyModal";
 import { UserGuideView } from "./components/UserGuideView";
+import { AnonymousFeedbackModal } from "./components/AnonymousFeedbackModal";
 import { ExportBar } from "./components/ExportBar";
 import { DocumentModal } from "./components/DocumentModal";
 import { PrintReport } from "./components/PrintReport";
@@ -52,6 +54,7 @@ export default function App() {
   const [isJudicialReportOpen, setIsJudicialReportOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   // Restore analysis from localStorage on initial page load (Zero DB, Zero API cost on reload)
   useEffect(() => {
@@ -62,10 +65,27 @@ export default function App() {
 
       if (cachedAnalysis) {
         const parsed = JSON.parse(cachedAnalysis);
+        if (parsed) {
+          if (!Array.isArray(parsed.recomendaciones_legales)) {
+            parsed.recomendaciones_legales = typeof parsed.recomendaciones_legales === "string"
+              ? parsed.recomendaciones_legales.split(/\r?\n/).map((s: string) => s.trim().replace(/^[-*•\d.]+\s*/, "")).filter(Boolean)
+              : [];
+          }
+          if (!Array.isArray(parsed.cronologia)) parsed.cronologia = [];
+          if (!Array.isArray(parsed.contradicciones)) parsed.contradicciones = [];
+          if (!Array.isArray(parsed.vacios_probatorios)) parsed.vacios_probatorios = [];
+        }
         setAnalysis(parsed);
         setIsRestoredFromLocal(true);
         if (cachedFiles) {
-          setFiles(JSON.parse(cachedFiles));
+          const rawFiles = JSON.parse(cachedFiles);
+          const safeFiles = Array.isArray(rawFiles)
+            ? rawFiles.map((f: any, i: number) => ({
+                ...f,
+                id: f.id || `restored-${i}-${f.name || "file"}`
+              }))
+            : [];
+          setFiles(safeFiles);
         }
         if (cachedContext) {
           setCaseContext(cachedContext);
@@ -204,10 +224,18 @@ export default function App() {
         }
       });
 
+      let recs = data.data.recomendaciones_legales;
+      if (!Array.isArray(recs)) {
+        recs = typeof recs === "string"
+          ? recs.split(/\r?\n/).map((s: string) => s.trim().replace(/^[-*•\d.]+\s*/, "")).filter(Boolean)
+          : [];
+      }
+
       const enrichedAnalysis: AnalysisResult = {
         ...data.data,
         cronologia: sortedEvents,
-        vacios_probatorios: mergedGaps
+        vacios_probatorios: mergedGaps,
+        recomendaciones_legales: recs
       };
 
       setAnalysis(enrichedAnalysis);
@@ -249,6 +277,7 @@ export default function App() {
         onOpenJudicialReport={() => setIsJudicialReportOpen(true)}
         onOpenPrivacyPolicy={() => setIsPrivacyModalOpen(true)}
         onOpenGuide={() => setIsGuideModalOpen(true)}
+        onOpenFeedback={() => setIsFeedbackModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -575,6 +604,12 @@ export default function App() {
             />
           </div>
         )}
+
+        {/* Anonymous Feedback & Legal Survey Modal */}
+        <AnonymousFeedbackModal
+          isOpen={isFeedbackModalOpen}
+          onClose={() => setIsFeedbackModalOpen(false)}
+        />
       </main>
 
       {/* Footer & Ley 29733 Peruvian Legal Disclaimer */}
@@ -601,6 +636,16 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setIsFeedbackModalOpen(true)}
+                className="text-xs font-semibold px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg transition-colors shadow-2xs inline-flex items-center gap-1.5 cursor-pointer"
+                title="Dejar sugerencias anónimas o responder la encuesta"
+              >
+                <MessageSquarePlus className="w-3.5 h-3.5 text-amber-600" />
+                <span>Buzón de Sugerencias</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setIsGuideModalOpen(true)}
