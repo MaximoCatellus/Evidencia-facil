@@ -14,7 +14,7 @@ import {
   BookOpen
 } from "lucide-react";
 import { AnalysisResult, UploadedFile } from "../types/ediscovery";
-import { runBayesianInference } from "../../lib/bayesianEngine";
+import { runBayesianInference } from "../lib/bayesianEngine";
 
 interface JudicialReportModalProps {
   analysis: AnalysisResult;

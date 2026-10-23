@@ -5,7 +5,7 @@ import {
   BayesianEvidenceState,
   runBayesianInference,
   simulateSensitivity
-} from "../../lib/bayesianEngine";
+} from "../lib/bayesianEngine";
 import {
   Scale,
   Sliders,

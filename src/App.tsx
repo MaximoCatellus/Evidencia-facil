@@ -46,7 +46,7 @@ export default function App() {
   const [loadingStep, setLoadingStep] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
-    "timeline" | "matrix" | "contradictions" | "gaps" | "bayesian" | "arguments" | "custody" | "guide"
+    "timeline" | "matrix" | "contradictions" | "gaps" | "bayesian" | "arguments" | "custody"
   >("timeline");
   const [selectedEventModal, setSelectedEventModal] = useState<TimelineEvent | null>(null);
   const [warningNotice, setWarningNotice] = useState<string | null>(null);
@@ -55,6 +55,7 @@ export default function App() {
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [isUploadZoneExpanded, setIsUploadZoneExpanded] = useState(false);
 
   // Restore analysis from localStorage on initial page load (Zero DB, Zero API cost on reload)
   useEffect(() => {
@@ -108,6 +109,7 @@ export default function App() {
     setError(null);
     setWarningNotice(null);
     setIsRestoredFromLocal(false);
+    setIsUploadZoneExpanded(false);
     setActiveTab("timeline");
   };
 
@@ -120,6 +122,7 @@ export default function App() {
     setError(null);
     setWarningNotice(null);
     setIsRestoredFromLocal(false);
+    setIsUploadZoneExpanded(true);
     try {
       localStorage.removeItem("ediscovery_current_analysis");
       localStorage.removeItem("ediscovery_uploaded_files");
@@ -240,6 +243,7 @@ export default function App() {
 
       setAnalysis(enrichedAnalysis);
       setIsRestoredFromLocal(false);
+      setIsUploadZoneExpanded(false);
 
       // Persistencia local en el navegador (Cero DB, Cero Coste de Hosting)
       try {
@@ -316,21 +320,77 @@ export default function App() {
           </div>
         )}
 
-        {/* Upload & Setup Zone */}
+        {/* Upload & Setup Zone (Progressive Disclosure) */}
         <div className="print:hidden">
-          <UploadZone
-            files={files}
-            onFilesChange={handleFilesChange}
-            caseContext={caseContext}
-            onCaseContextChange={setCaseContext}
-            onAnalyze={handleAnalyze}
-            isLoading={isLoading}
-            onLoadSample={handleLoadSample}
-            activeCaseId={activeCaseId}
-            onClearCase={handleNewAnalysis}
-            onOpenPrivacyPolicy={() => setIsPrivacyModalOpen(true)}
-            onOpenGuide={() => setIsGuideModalOpen(true)}
-          />
+          {analysis && !isUploadZoneExpanded ? (
+            <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-emerald-100/80 text-emerald-800 flex items-center justify-center font-bold shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-slate-800">
+                      Expediente en Auditoría ({files.length} {files.length === 1 ? "documento" : "documentos"})
+                    </span>
+                    <span className="text-[10px] font-mono bg-emerald-50 text-emerald-800 font-semibold px-2 py-0.5 rounded border border-emerald-200">
+                      Cadena SHA-256 verificada
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 truncate max-w-xl mt-0.5">
+                    {files.length > 0 ? files.map((f) => f.name).join(" · ") : "Expediente digital"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                <button
+                  type="button"
+                  onClick={() => setIsUploadZoneExpanded(true)}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors border border-slate-200 inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                >
+                  <span>✏️ Modificar o Añadir Pruebas</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNewAnalysis}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors border border-blue-200 inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>+ Nuevo Caso</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {analysis && (
+                <div className="mb-3 flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Panel de Carga y Gestión de Pruebas
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsUploadZoneExpanded(false)}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                  >
+                    ▲ Ocultar panel y volver a los resultados
+                  </button>
+                </div>
+              )}
+              <UploadZone
+                files={files}
+                onFilesChange={handleFilesChange}
+                caseContext={caseContext}
+                onCaseContextChange={setCaseContext}
+                onAnalyze={handleAnalyze}
+                isLoading={isLoading}
+                onLoadSample={handleLoadSample}
+                activeCaseId={activeCaseId}
+                onClearCase={handleNewAnalysis}
+                onOpenPrivacyPolicy={() => setIsPrivacyModalOpen(true)}
+                onOpenGuide={() => setIsGuideModalOpen(true)}
+              />
+            </div>
+          )}
         </div>
 
         {/* Loading Progress State */}
@@ -392,116 +452,100 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setActiveTab("timeline")}
-                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap cursor-pointer ${
                   activeTab === "timeline"
                     ? "border-slate-900 text-slate-900"
                     : "border-transparent text-slate-500 hover:text-slate-800"
                 }`}
               >
                 <Clock className="w-4 h-4" />
-                <span>Línea de Tiempo ({analysis.cronologia.length})</span>
+                <span>1. Cronología de Hechos ({analysis.cronologia.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("contradictions")}
+                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === "contradictions"
+                    ? "border-rose-600 text-rose-700 bg-rose-50/40"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <ArrowRightLeft className="w-4 h-4 text-rose-600" />
+                <span>2. Contradicciones ({analysis.contradicciones.length})</span>
+                {analysis.contradicciones.length > 0 && (
+                  <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-1.5 py-0.2 rounded-full">
+                    Crítico
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("gaps")}
+                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === "gaps"
+                    ? "border-amber-600 text-amber-800 bg-amber-50/40"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <ShieldQuestion className="w-4 h-4 text-amber-600" />
+                <span>3. Vacíos y Riesgos ({analysis.vacios_probatorios.length})</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab("matrix")}
-                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap cursor-pointer ${
                   activeTab === "matrix"
                     ? "border-slate-900 text-slate-900"
                     : "border-transparent text-slate-500 hover:text-slate-800"
                 }`}
               >
                 <TableIcon className="w-4 h-4" />
-                <span>Matriz de Pruebas</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab("contradictions")}
-                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
-                  activeTab === "contradictions"
-                    ? "border-rose-600 text-rose-700"
-                    : "border-transparent text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                <ArrowRightLeft className="w-4 h-4" />
-                <span>Contradicciones ({analysis.contradicciones.length})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab("gaps")}
-                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
-                  activeTab === "gaps"
-                    ? "border-amber-600 text-amber-800"
-                    : "border-transparent text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                <ShieldQuestion className="w-4 h-4" />
-                <span>Vacíos Probatorios ({analysis.vacios_probatorios.length})</span>
+                <span>4. Matriz de Pruebas</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab("bayesian")}
-                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap cursor-pointer ${
                   activeTab === "bayesian"
                     ? "border-blue-600 text-blue-700 bg-blue-50/40"
                     : "border-transparent text-slate-500 hover:text-slate-800"
                 }`}
+                title="Evaluación objetiva de verosimilitud de hipótesis procesales"
               >
                 <Scale className="w-4 h-4 text-blue-600" />
-                <span>
-                  Evaluación Bayesiana {analysis.red_bayesiana?.evidencias ? `(${analysis.red_bayesiana.evidencias.length})` : ""}
-                </span>
-                <span className="text-[10px] bg-blue-100 text-blue-800 font-mono px-1.5 py-0.2 rounded-full">
-                  P(H|E)
-                </span>
+                <span>5. Solidez Probatoria (dB Turing)</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab("arguments")}
-                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap cursor-pointer ${
                   activeTab === "arguments"
                     ? "border-indigo-600 text-indigo-700 bg-indigo-50/40"
                     : "border-transparent text-slate-500 hover:text-slate-800"
                 }`}
+                title="Estructura formal de la pretensión conforme a Toulmin"
               >
                 <GitFork className="w-4 h-4 text-indigo-600" />
-                <span>Grafo Argumental</span>
-                <span className="text-[10px] bg-indigo-100 text-indigo-800 font-mono px-1.5 py-0.2 rounded-full">
-                  Toulmin
-                </span>
+                <span>6. Esquema de Argumentación</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab("custody")}
-                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap cursor-pointer ${
                   activeTab === "custody"
                     ? "border-emerald-600 text-emerald-800 bg-emerald-50/40"
                     : "border-transparent text-slate-500 hover:text-slate-800"
                 }`}
+                title="Huellas inmutables SHA-256 para acta judicial"
               >
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Cadena de Custodia ({files.length || analysis.cadena_custodia?.length || 0})</span>
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-mono px-1.5 py-0.2 rounded-full">
-                  SHA-256
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab("guide")}
-                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
-                  activeTab === "guide"
-                    ? "border-blue-600 text-blue-800 bg-blue-50/50"
-                    : "border-transparent text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                <BookOpen className="w-4 h-4 text-blue-600" />
-                <span>Guía de Uso & Métodos</span>
+                <span>7. Cadena de Custodia (SHA-256)</span>
               </button>
             </div>
 
@@ -558,10 +602,6 @@ export default function App() {
 
               {activeTab === "custody" && (
                 <CustodyChainView files={files} analysis={analysis} />
-              )}
-
-              {activeTab === "guide" && (
-                <UserGuideView onLoadSample={handleLoadSample} />
               )}
             </div>
 
@@ -666,10 +706,23 @@ export default function App() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-400 text-[11px] pt-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
               <span className="font-bold text-slate-700">EvidenciaFácil</span>
               <span aria-hidden="true">·</span>
               <span>Democratizador de E-Discovery para Ciudadanos, Abogados y Peritos</span>
+              <span aria-hidden="true">·</span>
+              <a
+                href="https://github.com/MaximoCatellus/Evidencia-facil"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-800 transition-colors font-medium underline underline-offset-2"
+                title="Ver repositorio en GitHub (código fuente abierto)"
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                </svg>
+                <span>GitHub · Código Abierto</span>
+              </a>
             </div>
 
             <div className="text-center sm:text-right">

@@ -4,16 +4,10 @@ import {
   Send,
   CheckCircle2,
   Lock,
-  ShieldCheck,
   Star,
   Copy,
-  ExternalLink,
   X,
-  Sparkles,
-  HelpCircle,
-  ThumbsUp,
-  FileText,
-  Scale
+  Loader2
 } from "lucide-react";
 
 interface AnonymousFeedbackModalProps {
@@ -29,7 +23,7 @@ export interface FeedbackSubmission {
   ratings: {
     extractionAccuracy: number;
     chronologyUtility: number;
-    bayesianClarity: number;
+    probatoryClarity: number;
     custodyChainTrust: number;
     judicialReportUsability: number;
   };
@@ -42,10 +36,10 @@ const DESIRED_FEATURE_OPTIONS = [
   "Transcripción y análisis de audios de WhatsApp (.opus / .m4a)",
   "Exportación de demandas y contestaciones en formato Word (.docx)",
   "Reconocimiento de firmas electrónicas y certificados digitales",
-  "Simulador de contrainterrogatorio basado en las contradicciones",
+  "Simulador de contrainterrogatorio basado en contradicciones",
   "Plantillas específicas por materia (Penal, Laboral, Civil, Arbitraje)",
   "Soporte para expedientes de más de 100 páginas o 50 archivos a la vez",
-  "Modo colaborativo para estudio de abogados (sin servidor central)"
+  "Modo colaborativo para firmas legales (sin servidor central)"
 ];
 
 export const AnonymousFeedbackModal: React.FC<AnonymousFeedbackModalProps> = ({
@@ -54,19 +48,19 @@ export const AnonymousFeedbackModal: React.FC<AnonymousFeedbackModalProps> = ({
 }) => {
   const [userRole, setUserRole] = useState<string>("Abogado litigante");
   const [jurisdiction, setJurisdiction] = useState<string>("Perú");
-  const [extractionAccuracy, setExtractionAccuracy] = useState<number>(4);
-  const [chronologyUtility, setChronologyUtility] = useState<number>(5);
-  const [bayesianClarity, setBayesianClarity] = useState<number>(4);
-  const [custodyChainTrust, setCustodyChainTrust] = useState<number>(5);
-  const [judicialReportUsability, setJudicialReportUsability] = useState<number>(4);
-  const [biggestFriction, setBiggestFriction] = useState<string>(
-    "La evaluación bayesiana requiere familiarizarse con los decibeles (dB) y probabilidades"
-  );
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([
-    "Exportación de demandas y contestaciones en formato Word (.docx)",
-    "Transcripción y análisis de audios de WhatsApp (.opus / .m4a)"
-  ]);
+
+  // Iniciar en 0 para evitar sesgos en la medición
+  const [extractionAccuracy, setExtractionAccuracy] = useState<number>(0);
+  const [chronologyUtility, setChronologyUtility] = useState<number>(0);
+  const [probatoryClarity, setProbatoryClarity] = useState<number>(0);
+  const [custodyChainTrust, setCustodyChainTrust] = useState<number>(0);
+  const [judicialReportUsability, setJudicialReportUsability] = useState<number>(0);
+
+  const [biggestFriction, setBiggestFriction] = useState<string>("");
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [openSuggestion, setOpenSuggestion] = useState<string>("");
+
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [copiedText, setCopiedText] = useState<boolean>(false);
 
@@ -84,25 +78,26 @@ Fecha: ${new Date().toLocaleString("es-ES")}
 Perfil: ${userRole} (${jurisdiction})
 
 CALIFICACIONES (1 a 5 estrellas):
-- Precisión de Extracción Documental (OCR/Chats): ${extractionAccuracy}/5
-- Utilidad de la Cronología Procesal: ${chronologyUtility}/5
-- Claridad de la Evaluación Bayesiana: ${bayesianClarity}/5
-- Confianza en Cadena de Custodia SHA-256: ${custodyChainTrust}/5
-- Utilidad del Dictamen Pericial: ${judicialReportUsability}/5
+- Precisión de Extracción Documental (OCR/Chats): ${extractionAccuracy || "Sin calificar"}/5
+- Utilidad de la Cronología Procesal: ${chronologyUtility || "Sin calificar"}/5
+- Claridad de la Fuerza Probatoria / Certeza: ${probatoryClarity || "Sin calificar"}/5
+- Confianza en Cadena de Custodia SHA-256: ${custodyChainTrust || "Sin calificar"}/5
+- Utilidad del Dictamen Pericial: ${judicialReportUsability || "Sin calificar"}/5
 
 MAYOR DIFICULTAD O FRICCIÓN ENCONTRADA:
-"${biggestFriction}"
+"${biggestFriction || "No especificada"}"
 
 FUNCIONALIDADES MÁS DESEADAS:
-${selectedFeatures.map((f) => `- ${f}`).join("\n")}
+${selectedFeatures.length > 0 ? selectedFeatures.map((f) => `- ${f}`).join("\n") : "Ninguna seleccionada"}
 
-SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
+SUGERENCIA ABIERTA / COMENTARIOS:
 "${openSuggestion || "Sin comentarios adicionales"}"
 ======================================================`;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     const submission: FeedbackSubmission = {
       id: `feed-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -112,26 +107,40 @@ SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
       ratings: {
         extractionAccuracy,
         chronologyUtility,
-        bayesianClarity,
+        probatoryClarity,
         custodyChainTrust,
         judicialReportUsability
       },
-      biggestFriction,
+      biggestFriction: biggestFriction || "No especificada",
       desiredFeatures: selectedFeatures,
       openSuggestion
     };
 
-    // Store in localStorage without requiring any remote private database
+    // 1. Respaldo en localStorage (Zero-Knowledge)
     try {
       const existing = localStorage.getItem("ediscovery_anonymous_feedback");
       const list = existing ? JSON.parse(existing) : [];
       list.push(submission);
       localStorage.setItem("ediscovery_anonymous_feedback", JSON.stringify(list));
     } catch (err) {
-      console.warn("No fue posible guardar feedback en localStorage:", err);
+      console.warn("Error guardando en localStorage:", err);
     }
 
-    setIsSubmitted(true);
+    // 2. Envío real anónimo a tu backend / webhook (Opcional: cambiar por tu endpoint de Formspree o API Route)
+    try {
+      /*
+      await fetch("https://formspree.io/f/TU_FORM_ID", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(submission)
+      });
+      */
+    } catch (err) {
+      console.info("Envío remoto no configurado o sin conexión; guardado local exitoso.");
+    } finally {
+      setIsSubmitting(false);
+      setIsSubmitted(true);
+    }
   };
 
   const handleCopy = () => {
@@ -144,6 +153,13 @@ SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
   const handleReset = () => {
     setIsSubmitted(false);
     setOpenSuggestion("");
+    setExtractionAccuracy(0);
+    setChronologyUtility(0);
+    setProbatoryClarity(0);
+    setCustodyChainTrust(0);
+    setJudicialReportUsability(0);
+    setSelectedFeatures([]);
+    setBiggestFriction("");
   };
 
   return (
@@ -182,7 +198,7 @@ SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6 text-xs text-slate-700 leading-relaxed">
-          {/* Privacy Guarantee Notice */}
+          {/* Privacy Notice */}
           <div className="bg-emerald-50 border border-emerald-200/90 rounded-xl p-3.5 text-emerald-950 flex items-start gap-3">
             <Lock className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
             <div className="space-y-0.5 text-[11px]">
@@ -190,7 +206,7 @@ SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
                 Garantía de Anonimato Total (Ley N° 29733 - Perú):
               </span>
               <p className="text-emerald-800 leading-relaxed">
-                No solicitamos tu nombre, teléfono, dirección IP ni correo electrónico. Esta encuesta busca retroalimentación real de abogados y litigantes para elevar la calidad probatoria del sistema.
+                No solicitamos tu nombre, teléfono, IP ni correo. Tus comentarios nos sirven para detectar fricciones reales y corregir la herramienta.
               </p>
             </div>
           </div>
@@ -206,7 +222,7 @@ SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
                   ¡Muchas gracias por tu sugerencia técnica!
                 </h3>
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  Tu retroalimentación ha sido registrada de forma 100% anónima. Además, puedes copiar el resumen para compartirlo en foros jurídicos o con los desarrolladores.
+                  Tu retroalimentación ha sido registrada. También puedes copiar el resumen para compartirlo en LinkedIn o enviarlo directamente al desarrollador.
                 </p>
               </div>
 
@@ -234,7 +250,7 @@ SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
               </div>
             </div>
           ) : (
-            /* Interactive Survey Form */
+            /* Form */
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Question 1: Role & Jurisdiction */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -276,16 +292,19 @@ SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
                 </div>
               </div>
 
-              {/* Question 2: Star Ratings for Modules */}
+              {/* Question 2: Star Ratings */}
               <div className="space-y-2 pt-1 border-t border-slate-100">
-                <label className="block font-bold text-slate-800 text-xs">
-                  2. Califica los módulos según tu experiencia (1 = Deficiente, 5 = Excelente):
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-slate-800 text-xs">
+                    2. Califica los módulos según tu experiencia:
+                  </label>
+                  <span className="text-[10px] text-slate-400">Haz clic en las estrellas (1 a 5)</span>
+                </div>
 
                 <div className="space-y-2.5 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200">
                   {/* Rating 1: Extraction */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px]">
-                    <span className="text-slate-700">Precisión en extracción de hechos y citas de chats/PDFs:</span>
+                    <span className="text-slate-700">Precisión al extraer fechas y citas de chats/PDFs:</span>
                     <div className="flex items-center gap-1">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
@@ -317,18 +336,18 @@ SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
                     </div>
                   </div>
 
-                  {/* Rating 3: Bayesian */}
+                  {/* Rating 3: Probatory Strength */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px]">
-                    <span className="text-slate-700">Claridad de la Evaluación Bayesiana P(H|E) y decibeles:</span>
+                    <span className="text-slate-700">Claridad en el cálculo de Fuerza Probatoria y Certeza Judicial:</span>
                     <div className="flex items-center gap-1">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
                           key={star}
                           type="button"
-                          onClick={() => setBayesianClarity(star)}
+                          onClick={() => setProbatoryClarity(star)}
                           className="p-1 text-amber-400 hover:scale-110 transition-transform cursor-pointer"
                         >
-                          <Star className={`w-4 h-4 ${star <= bayesianClarity ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                          <Star className={`w-4 h-4 ${star <= probatoryClarity ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
                         </button>
                       ))}
                     </div>
@@ -370,7 +389,7 @@ SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
                 </div>
               </div>
 
-              {/* Question 3: Biggest Friction / What would you improve? */}
+              {/* Question 3: Biggest Friction */}
               <div className="space-y-1 pt-1 border-t border-slate-100">
                 <label className="block font-bold text-slate-800 text-xs">
                   3. ¿Cuál consideras que es la mayor barrera o aspecto a mejorar actualmente?
@@ -380,28 +399,29 @@ SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
                   onChange={(e) => setBiggestFriction(e.target.value)}
                   className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 >
-                  <option value="La evaluación bayesiana requiere familiarizarse con los decibeles (dB) y probabilidades">
-                    La evaluación bayesiana matemática resulta compleja si el abogado o juez no sabe estadística
+                  <option value="">-- Selecciona la principal dificultad que tuviste --</option>
+                  <option value="La interfaz tiene demasiados botones y cuesta entender por dónde empezar">
+                    La interfaz tiene demasiados botones o textos y cuesta entender por dónde empezar
                   </option>
-                  <option value="Me gustaría que la IA proponga directamente el texto del escrito de demanda">
-                    Falta un generador automático del texto de la demanda articulado por numerales procesales
+                  <option value="Los términos matemáticos (probabilidades, decibeles) resultan complejos">
+                    Los términos matemáticos o probabilísticos resultan complejos de interpretar
                   </option>
-                  <option value="A veces se omiten detalles pequeños en chats muy extensos de WhatsApp">
-                    En chats muy largos de WhatsApp se omiten detalles contextuales o emojis relevantes
+                  <option value="Me gustaría que la IA redacte directamente el texto de la demanda">
+                    Falta que el sistema redacte directamente los numerales de la demanda o contestación
                   </option>
-                  <option value="El formato de impresión judicial podría incluir más sellos o membretes oficiales">
-                    El diseño del Dictamen judicial necesita más opciones de membrete o carátula de juzgado
+                  <option value="En chats muy extensos se omitieron detalles o mensajes clave">
+                    En chats muy largos se omitieron detalles contextuales importantes
                   </option>
-                  <option value="El límite de archivos o peso para el plan gratuito">
-                    El peso o cantidad de archivos que se pueden subir al mismo tiempo
+                  <option value="El formato de impresión judicial necesita más opciones de personalización">
+                    El Dictamen judicial necesita más opciones de membrete, carátula o firma
                   </option>
-                  <option value="Ninguna, el sistema funciona de manera fluida y precisa">
-                    Ninguna, el sistema cumple y supera las expectativas actuales
+                  <option value="Ninguna, el flujo fue claro y cumplió las expectativas">
+                    Ninguna, el flujo fue comprensible y cumplió lo esperado
                   </option>
                 </select>
               </div>
 
-              {/* Question 4: Desired Features Checkboxes */}
+              {/* Question 4: Desired Features */}
               <div className="space-y-2 pt-1 border-t border-slate-100">
                 <label className="block font-bold text-slate-800 text-xs">
                   4. ¿Qué nuevas funcionalidades te gustaría ver en las próximas versiones?
@@ -432,16 +452,16 @@ SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
                 </div>
               </div>
 
-              {/* Question 5: Open Suggestion Box */}
+              {/* Question 5: Open Suggestion */}
               <div className="space-y-1.5 pt-1 border-t border-slate-100">
                 <label className="block font-bold text-slate-800 text-xs">
-                  5. Sugerencia libre, crítica constructiva o caso específico:
+                  5. Sugerencia libre o crítica constructiva:
                 </label>
                 <textarea
                   rows={3}
                   value={openSuggestion}
                   onChange={(e) => setOpenSuggestion(e.target.value)}
-                  placeholder="Ej: 'Me gustaría que al calcular el vacío probatorio me sugiera el artículo específico del Código Procesal Civil para pedir la exhibición...'"
+                  placeholder="Ej: 'Me gustaría que al detectar una contradicción me recomiende qué pregunta formularle a la contraparte en la audiencia...'"
                   className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
@@ -461,7 +481,7 @@ SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
                     type="button"
                     onClick={handleCopy}
                     className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
-                    title="Copiar las respuestas para pegarlas en un correo o mensaje"
+                    title="Copiar las respuestas para pegarlas en LinkedIn o un mensaje"
                   >
                     {copiedText ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedText ? "¡Copiado!" : "Copiar Encuesta"}</span>
@@ -469,10 +489,15 @@ SUGERENCIA ABIERTA / COMENTARIOS DE MEJORA:
 
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg text-xs transition-colors inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                    disabled={isSubmitting}
+                    className="px-5 py-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white font-semibold rounded-lg text-xs transition-colors inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
                   >
-                    <Send className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Guardar Sugerencia Anónima</span>
+                    {isSubmitting ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5 text-amber-400" />
+                    )}
+                    <span>{isSubmitting ? "Enviando..." : "Guardar Sugerencia Anónima"}</span>
                   </button>
                 </div>
               </div>

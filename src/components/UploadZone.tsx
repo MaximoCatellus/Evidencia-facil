@@ -240,89 +240,41 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-5 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-slate-100">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <span>Expediente de Evidencias Digitales</span>
-            <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded">
+            <span className="text-xs font-normal text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
               {files.length} {files.length === 1 ? "documento" : "documentos"}
             </span>
           </h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Sube capturas de pantalla de chats (WhatsApp/Telegram), correos electrónicos, contratos escaneados o recibos bancarios.
+          <p className="text-xs text-slate-500 mt-0.5">
+            Ingresa capturas de WhatsApp o Telegram, contratos en PDF, comprobantes de pago o correos electrónicos.
           </p>
         </div>
 
-        {/* Preloaded demo trigger & Guide button */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {onOpenGuide && (
-            <button
-              type="button"
-              onClick={onOpenGuide}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors border border-blue-200 inline-flex items-center gap-1.5 shadow-2xs"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-              <span>¿Cómo funciona? Guía Práctica</span>
-            </button>
-          )}
-
-          <span className="text-xs text-slate-400 hidden sm:inline">·</span>
-
+        {onOpenGuide && (
           <button
             type="button"
-            onClick={() => onLoadSample("disputa-contractual")}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors inline-flex items-center gap-1.5"
+            onClick={onOpenGuide}
+            className="text-xs font-medium px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors inline-flex items-center gap-1.5 self-start sm:self-center cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            Cargar Caso Real Demo
+            <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+            <span>¿Cómo funciona? Guía Práctica</span>
           </button>
-        </div>
+        )}
       </div>
 
-      {/* Peruvian Ley 29733 Privacy & Zero-Knowledge Guarantee Card */}
-      <div className="mb-5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/90 rounded-xl p-4 text-xs text-emerald-950 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs font-bold">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-slate-900 text-xs">
-                  Garantía de Privacidad y Protección de Datos Personales (Ley N° 29733 - Perú)
-                </span>
-                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900">
-                  Cero Servidores Privados
-                </span>
-              </div>
-              <p className="text-[11px] text-emerald-900 leading-relaxed">
-                Tus chats, fotos y documentos <strong>NO se envían a ningún servidor privado ni base de datos externa</strong>. El creador y administrador de la plataforma <strong>NO tiene forma técnica ni acceso alguno para ver, leer o almacenar tus archivos</strong>. Todo el preprocesamiento ocurre localmente en la memoria de tu propio navegador web.
-              </p>
-            </div>
-          </div>
-          {onOpenPrivacyPolicy && (
-            <button
-              type="button"
-              onClick={onOpenPrivacyPolicy}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white transition-colors shrink-0 shadow-2xs inline-flex items-center gap-1.5 self-start sm:self-center"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Ver Términos Ley 29733</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Drag & Drop Area */}
+      {/* Drag & Drop Area with 3-step Empty State */}
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ${
+        className={`border-2 border-dashed rounded-xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-200 ${
           isDragging
-            ? "border-blue-500 bg-blue-50/50 scale-[1.005]"
-            : "border-slate-300 hover:border-slate-400 bg-slate-50/60"
+            ? "border-blue-500 bg-blue-50/60 scale-[1.005]"
+            : "border-slate-300 hover:border-blue-400 bg-slate-50/50 hover:bg-slate-50"
         }`}
       >
         <input
@@ -334,21 +286,82 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           onChange={handleFileInputChange}
         />
 
-        <div className="max-w-md mx-auto flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full bg-blue-100/70 text-blue-700 flex items-center justify-center mb-3">
+        <div className="max-w-2xl mx-auto flex flex-col items-center">
+          <div className="w-12 h-12 rounded-full bg-blue-100/80 text-blue-700 flex items-center justify-center mb-2.5 shadow-2xs">
             <UploadCloud className="w-6 h-6" />
           </div>
-          <p className="text-base font-semibold text-slate-800">
-            Arrastra y suelta aquí tus pruebas o haz clic para explorar
+          <p className="text-sm sm:text-base font-bold text-slate-800">
+            {files.length === 0
+              ? "Arrastra aquí tus archivos o haz clic para explorar tu equipo"
+              : "Haz clic o arrastra más archivos para incorporarlos al expediente"}
           </p>
-          <p className="text-xs text-slate-500 mt-1 mb-3">
-            Formatos admitidos: PNG, JPG, WEBP (capturas de chat/móvil), PDF (contratos/notificaciones), TXT (correos/transcripciones)
+          <p className="text-xs text-slate-500 mt-1 mb-4">
+            Admite capturas de pantalla (PNG, JPG, WEBP), contratos o documentos (PDF) y textos (TXT)
           </p>
-          <div className="flex items-center gap-3 text-xs text-slate-400">
-            <span>Procesamiento confidencial</span>
-            <span aria-hidden="true">·</span>
-            <span>Extracción OCR & Multimodal</span>
+
+          {/* 3 Numbered Steps Pattern */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full text-left pt-2 border-t border-slate-200/60">
+            <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white/90 border border-slate-200/80 shadow-2xs">
+              <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                1
+              </span>
+              <div>
+                <p className="text-xs font-bold text-slate-800">Sube tus pruebas</p>
+                <p className="text-[11px] text-slate-500 leading-tight">Chats de WhatsApp, contratos o fotos.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white/90 border border-slate-200/80 shadow-2xs">
+              <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                2
+              </span>
+              <div>
+                <p className="text-xs font-bold text-slate-800">La IA audita los hechos</p>
+                <p className="text-[11px] text-slate-500 leading-tight">Extrae fechas, citas textuales y contradicciones.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white/90 border border-slate-200/80 shadow-2xs">
+              <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                3
+              </span>
+              <div>
+                <p className="text-xs font-bold text-slate-800">Obtén tu dictamen</p>
+                <p className="text-[11px] text-slate-500 leading-tight">Informe pericial formal listo para el juzgado.</p>
+              </div>
+            </div>
           </div>
+        </div>
+      </div>
+
+      {/* Guided Sample Selector (Aha! Moment en 1 clic) */}
+      <div className="mt-4 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-blue-50/90 via-indigo-50/40 to-slate-50 border border-blue-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl select-none" aria-hidden="true">🚀</span>
+          <div>
+            <span className="text-xs font-bold text-slate-900 block">
+              ¿No tienes archivos a la mano para probar?
+            </span>
+            <span className="text-[11px] text-slate-600">
+              Carga un caso real resuelto en 1 clic y comprueba el resultado al instante:
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <button
+            type="button"
+            onClick={() => onLoadSample("disputa-contractual")}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>Probar Disputa Contrato & Chat</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onLoadSample("caso-laboral")}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition-colors cursor-pointer"
+          >
+            <span>Despido & Horas Extra</span>
+          </button>
         </div>
       </div>
 
@@ -472,34 +485,57 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
       </div>
 
       {/* Action / Analyze Bar */}
-      <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <Lock className="w-3.5 h-3.5 text-slate-400" />
-          <span>Trazabilidad garantizada: cada hecho tendrá cita al archivo original</span>
+      <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col items-center gap-3">
+        <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>Trazabilidad 1:1: cada hecho fáctico tendrá cita textual al documento original</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={onAnalyze}
+            disabled={files.length === 0 || isLoading}
+            className={`w-full sm:w-auto px-7 py-3 rounded-xl font-bold text-sm inline-flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer ${
+              files.length === 0 || isLoading
+                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20"
+            }`}
+          >
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Analizando Evidencias con IA Forense...</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 fill-white text-white" />
+                <span>
+                  {files.length === 0
+                    ? "Selecciona o Arrastra Archivos para Iniciar"
+                    : `Analizar ${files.length} ${files.length === 1 ? "Documento" : "Documentos"} con IA Forense`}
+                </span>
+              </>
+            )}
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={onAnalyze}
-          disabled={files.length === 0 || isLoading}
-          className={`w-full sm:w-auto px-6 py-2.5 rounded-lg font-medium text-sm inline-flex items-center justify-center gap-2 transition-all shadow-sm ${
-            files.length === 0 || isLoading
-              ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-              : "bg-slate-900 hover:bg-slate-800 text-white"
-          }`}
-        >
-          {isLoading ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <span>Analizando Evidencias con Gemini...</span>
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4 fill-amber-400 text-amber-400" />
-              <span>Procesar E-Discovery ({files.length} {files.length === 1 ? "archivo" : "archivos"})</span>
-            </>
+        {/* Discreet Privacy Micro-badge */}
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 pt-1">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+          <span>
+            Tus archivos nunca salen de tu navegador ni se guardan en servidores (Cumplimiento <strong>Ley N° 29733</strong>).
+          </span>
+          {onOpenPrivacyPolicy && (
+            <button
+              type="button"
+              onClick={onOpenPrivacyPolicy}
+              className="text-blue-600 hover:text-blue-800 underline font-medium cursor-pointer ml-1"
+            >
+              Ver garantía técnica
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
       {/* Modal for manual text snippet insertion */}

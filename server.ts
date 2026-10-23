@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -673,7 +674,8 @@ app.get("/api/health", (req, res) => {
 
 // Configure Vite integration for dev server or static serving in production
 async function startServer() {
-  const isProduction = process.env.NODE_ENV === "production";
+  const isCloudRun = process.env.K_SERVICE !== undefined || process.env.K_REVISION !== undefined;
+  const isProduction = process.env.NODE_ENV === "production" || isCloudRun;
 
   if (!isProduction) {
     const { createServer } = await import("vite");
@@ -690,7 +692,10 @@ async function startServer() {
 
     app.use(vite.middlewares);
   } else {
-    const distPath = path.resolve(__dirname, "dist");
+    const distPath = fs.existsSync(path.resolve(__dirname, "dist"))
+      ? path.resolve(__dirname, "dist")
+      : path.resolve(__dirname, "build");
+
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.resolve(distPath, "index.html"));
@@ -698,7 +703,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[EvidenciaFácil] Servidor ejecutándose en http://0.0.0.0:${PORT}`);
+    console.log(`[EvidenciaFácil] Servidor ejecutándose en http://0.0.0.0:${PORT} (modo: ${isProduction ? "producción" : "desarrollo"})`);
   });
 }
 
