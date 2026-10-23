@@ -36,6 +36,7 @@ import { PrintReport } from "./components/PrintReport";
 import { UploadedFile, AnalysisResult, TimelineEvent } from "./types/ediscovery";
 import { SAMPLE_CASES } from "./data/sampleCases";
 import { sortAndNormalizeChronology, detectEvidentiaryGaps } from "./lib/chronologyEngine";
+import { generateTailoredAnalysis } from "./lib/tailoredAnalysis";
 
 export default function App() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -143,6 +144,65 @@ export default function App() {
     }
   };
 
+  // Fallback to local forensic processing when server is unreachable or reports 405
+  const handleAnalyzeLocally = () => {
+    if (files.length === 0) return;
+    setIsLoading(true);
+    setLoadingStep("Procesando con motor forense local de contingencia...");
+    setError(null);
+    setWarningNotice(null);
+
+    try {
+      const payloadFiles = files.map((f) => ({
+        name: f.name,
+        type: f.type,
+        base64: f.base64,
+        textContent: f.textContent,
+        size: f.size
+      }));
+
+      const rawAnalysis = generateTailoredAnalysis(payloadFiles, caseContext);
+      const sortedEvents = sortAndNormalizeChronology(rawAnalysis.cronologia || []);
+      const detectedGaps = detectEvidentiaryGaps(sortedEvents, 30);
+
+      const mergedGaps = [...(rawAnalysis.vacios_probatorios || [])];
+      detectedGaps.forEach((dg: any) => {
+        if (!mergedGaps.some((g: any) => g.hecho_o_periodo_afectado?.includes(dg.periodoAfectado))) {
+          mergedGaps.push({
+            id: dg.id,
+            descripcion: `Silencio procesal prolongado (${dg.diasInactividad} días sin comunicaciones registradas)`,
+            hecho_o_periodo_afectado: dg.periodoAfectado,
+            riesgo_procesal: dg.riesgoProcesal,
+            diligencia_o_prueba_sugerida: dg.diligenciaSugerida,
+            prioridad: (dg.nivelRiesgo === "Crítico" ? "Alta" : dg.nivelRiesgo === "Alto" ? "Media" : "Baja") as "Alta" | "Media" | "Baja"
+          });
+        }
+      });
+
+      const enrichedAnalysis: AnalysisResult = {
+        ...rawAnalysis,
+        cronologia: sortedEvents as unknown as TimelineEvent[],
+        vacios_probatorios: mergedGaps as any,
+        recomendaciones_legales: rawAnalysis.recomendaciones_legales
+      };
+
+      setAnalysis(enrichedAnalysis);
+      setIsRestoredFromLocal(false);
+      setIsUploadZoneExpanded(false);
+      setWarningNotice("Expediente estructurado mediante el motor procesal local (modo contingencia sin servidor).");
+
+      try {
+        localStorage.setItem("ediscovery_current_analysis", JSON.stringify(enrichedAnalysis));
+        localStorage.setItem("ediscovery_uploaded_files", JSON.stringify(files));
+        localStorage.setItem("ediscovery_case_context", caseContext);
+      } catch {}
+    } catch (err: any) {
+      setError(err?.message || "Error al procesar el caso localmente.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Run analysis via server API endpoint
   const handleAnalyze = async () => {
     if (files.length === 0) return;
@@ -185,6 +245,11 @@ export default function App() {
       try {
         data = JSON.parse(responseText);
       } catch {
+        if (res.status === 405) {
+          throw new Error(
+            "El servidor de Vercel devolvió error 405 (Method Not Allowed). Esto ocurre si la función Serverless /api/analyze aún no se ha desplegado o la ruta se atiende como archivo estático. Puedes pulsar 'Procesar con Motor Local' para continuar de inmediato."
+          );
+        }
         if (
           res.status === 504 ||
           responseText.includes("TIMEOUT") ||
@@ -222,7 +287,7 @@ export default function App() {
             hecho_o_periodo_afectado: dg.periodoAfectado,
             riesgo_procesal: dg.riesgoProcesal,
             diligencia_o_prueba_sugerida: dg.diligenciaSugerida,
-            prioridad: dg.nivelRiesgo === "Crítico" ? "Alta" : dg.nivelRiesgo === "Alto" ? "Media" : "Baja"
+            prioridad: (dg.nivelRiesgo === "Crítico" ? "Alta" : dg.nivelRiesgo === "Alto" ? "Media" : "Baja") as "Alta" | "Media" | "Baja"
           });
         }
       });
@@ -236,8 +301,8 @@ export default function App() {
 
       const enrichedAnalysis: AnalysisResult = {
         ...data.data,
-        cronologia: sortedEvents,
-        vacios_probatorios: mergedGaps,
+        cronologia: sortedEvents as unknown as TimelineEvent[],
+        vacios_probatorios: mergedGaps as any,
         recomendaciones_legales: recs
       };
 
@@ -300,19 +365,27 @@ export default function App() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
+              <button
+                type="button"
+                onClick={handleAnalyzeLocally}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded text-xs transition-colors inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Procesar con Motor Local
+              </button>
               <button
                 type="button"
                 onClick={handleAnalyze}
-                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded text-xs transition-colors inline-flex items-center gap-1.5"
+                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded text-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                Reintentar Ahora
+                Reintentar Servidor
               </button>
               <button
                 type="button"
                 onClick={() => setError(null)}
-                className="px-2.5 py-1.5 text-rose-700 hover:text-rose-900 font-medium"
+                className="px-2.5 py-1.5 text-rose-700 hover:text-rose-900 font-medium cursor-pointer"
               >
                 Descartar
               </button>
