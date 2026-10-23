@@ -8,38 +8,75 @@ import {
   ShieldCheck,
   Lock,
   ChevronRight,
-  ArrowRight
+  ArrowRight,
+  X,
+  Sparkles
 } from "lucide-react";
 
 interface UserGuideViewProps {
   onLoadSample?: (caseId: string) => void;
   onClose?: () => void;
   isModal?: boolean;
+  isFirstVisit?: boolean;
 }
 
 export const UserGuideView: React.FC<UserGuideViewProps> = ({
   onLoadSample,
   onClose,
-  isModal = false
+  isModal = false,
+  isFirstVisit = false
 }) => {
   const [activeTab, setActiveTab] = useState<"quickstart" | "cases" | "security">("quickstart");
+  const [dontShowAgain, setDontShowAgain] = useState(true);
+
+  const handleClose = () => {
+    try {
+      if (dontShowAgain) {
+        localStorage.setItem("evidenciafacil_guide_seen_v1", "true");
+      } else {
+        localStorage.removeItem("evidenciafacil_guide_seen_v1");
+      }
+    } catch {
+      // Ignorar restricciones de almacenamiento local
+    }
+    if (onClose) onClose();
+  };
+
+  const handleSampleSelect = (caseId: string) => {
+    try {
+      localStorage.setItem("evidenciafacil_guide_seen_v1", "true");
+    } catch {
+      // Ignorar restricciones de almacenamiento local
+    }
+    if (onLoadSample) onLoadSample(caseId);
+    if (onClose) onClose();
+  };
 
   return (
     <div
-      className={`bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden flex flex-col ${
-        isModal ? "max-w-4xl w-full max-h-[90vh]" : ""
+      className={`bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col ${
+        isModal ? "max-w-4xl w-full max-h-[90vh] animate-in fade-in zoom-in-95 duration-200" : ""
       }`}
     >
       {/* Encabezado */}
       <div className="px-6 py-5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold">
-            <BookOpen className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold shrink-0 shadow-xs">
+            {isFirstVisit ? <Sparkles className="w-5 h-5 text-slate-950" /> : <BookOpen className="w-5 h-5" />}
           </div>
           <div>
-            <h2 className="text-sm sm:text-base font-bold">¿Cómo funciona EvidenciaFácil?</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-bold">
+                {isFirstVisit ? "¡Bienvenido a EvidenciaFácil!" : "¿Cómo funciona EvidenciaFácil?"}
+              </h2>
+              {isFirstVisit && (
+                <span className="text-[10px] font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full">
+                  Guía de inicio
+                </span>
+              )}
+            </div>
             <p className="text-xs text-slate-300">
-              Guía rápida para ordenar tus pruebas y descubrir inconsistencias en minutos
+              Transforma capturas de chat, fotos y contratos en un expediente con valor legal en minutos
             </p>
           </div>
         </div>
@@ -47,10 +84,12 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
         {isModal && onClose && (
           <button
             type="button"
-            onClick={onClose}
-            className="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors"
+            onClick={handleClose}
+            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            aria-label="Cerrar guía"
+            title="Cerrar guía"
           >
-            Cerrar
+            <X className="w-5 h-5" />
           </button>
         )}
       </div>
@@ -141,36 +180,54 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
                 </span>
                 <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
                   <FileCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Obtén tu reporte</span>
+                  <span>Análisis de pruebas</span>
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Descarga un dictamen pericial con sello criptográfico, listo para que tu abogado lo presente en una demanda o audiencia.
+                  Descarga un análisis estructurado de pruebas con trazabilidad de citas, ideal para ordenar tus argumentos y revisarlo con tu abogado.
                 </p>
               </div>
             </div>
 
             {/* Banner de invitación rápida */}
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div>
-                <span className="font-bold text-slate-900 text-xs block">
-                  ¿No tienes archivos a mano en este momento?
-                </span>
-                <span className="text-[11px] text-slate-600">
-                  Prueba la aplicación cargando un caso predeterminado con un solo clic.
-                </span>
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50/60 border border-blue-200 rounded-xl space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <span className="font-bold text-slate-900 text-xs block">
+                    ¿No tienes archivos a mano en este momento?
+                  </span>
+                  <span className="text-[11px] text-slate-600">
+                    Comprueba la cronología, contradicciones y análisis de pruebas en 1 clic cargando un caso resuelto:
+                  </span>
+                </div>
               </div>
+
               {onLoadSample && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onLoadSample("caso-laboral");
-                    if (onClose) onClose();
-                  }}
-                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-xs transition-colors shrink-0 flex items-center gap-1.5"
-                >
-                  <span>Cargar Caso Demo</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-2 flex-wrap pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSampleSelect("disputa-contractual")}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <span>Disputa Contrato & Chat</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSampleSelect("caso-laboral")}
+                    className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-medium rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Despido & Horas Extra</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSampleSelect("resolucion-tribunal-fiscal")}
+                    className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-medium rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>⚖️ Res. Tribunal Fiscal</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -239,9 +296,9 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
             <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 flex items-start gap-3">
               <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-bold text-xs text-emerald-900">¿Por qué este reporte tiene valor en juicio?</h4>
+                <h4 className="font-bold text-xs text-emerald-900">¿Cómo te ayuda este análisis como herramienta de guía?</h4>
                 <p className="text-[11px] text-emerald-800 mt-1 leading-relaxed">
-                  En un proceso judicial, la contraparte suele impugnar capturas alegando que fueron editadas con Photoshop. La plataforma calcula una huella matemática inmutable (Hash SHA-256) bajo el estándar <strong>ISO/IEC 27037</strong> para acreditar que el archivo no fue manipulado.
+                  Esta herramienta te permite organizar cronológicamente los hechos y detectar contradicciones para preparar tu caso y revisarlo con tu abogado. Para verificar la integridad técnica de tus archivos, la plataforma calcula una huella inmutable (Hash SHA-256) bajo el estándar <strong>ISO/IEC 27037</strong>. <em>Aviso: Esta es una herramienta de guía preliminar que no emite dictámenes periciales judiciales oficiales ni sustituye a peritos de parte o de juzgado.</em>
                 </p>
               </div>
             </div>
@@ -273,31 +330,34 @@ export const UserGuideView: React.FC<UserGuideViewProps> = ({
 
       {/* Footer con Acciones Claras */}
       <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-        <span className="text-[11px] text-slate-500">
-          EvidenciaFácil · Auditoría documental accesible y confidencial
-        </span>
+        <label className="flex items-center gap-2 text-[11px] text-slate-600 select-none cursor-pointer">
+          <input
+            type="checkbox"
+            checked={dontShowAgain}
+            onChange={(e) => setDontShowAgain(e.target.checked)}
+            className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+          />
+          <span>No volver a mostrar esta guía automáticamente al iniciar</span>
+        </label>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {onLoadSample && (
             <button
               type="button"
-              onClick={() => {
-                onLoadSample("caso-laboral");
-                if (onClose) onClose();
-              }}
-              className="flex-1 sm:flex-none px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-lg transition-colors"
+              onClick={() => handleSampleSelect("disputa-contractual")}
+              className="flex-1 sm:flex-none px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-lg transition-colors cursor-pointer shadow-2xs"
             >
-              Cargar Caso de Prueba (Demo)
+              Probar Caso Demo
             </button>
           )}
 
           {onClose && (
             <button
               type="button"
-              onClick={onClose}
-              className="flex-1 sm:flex-none px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition-colors"
+              onClick={handleClose}
+              className="flex-1 sm:flex-none px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer shadow-2xs"
             >
-              Subir mis propios documentos
+              {isFirstVisit ? "Comenzar con mis propios documentos" : "Cerrar y continuar"}
             </button>
           )}
         </div>

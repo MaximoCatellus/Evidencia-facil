@@ -326,8 +326,8 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                 3
               </span>
               <div>
-                <p className="text-xs font-bold text-slate-800">Obtén tu dictamen</p>
-                <p className="text-[11px] text-slate-500 leading-tight">Informe pericial formal listo para el juzgado.</p>
+                <p className="text-xs font-bold text-slate-800">Análisis de pruebas</p>
+                <p className="text-[11px] text-slate-500 leading-tight">Guía organizada y cronológica para preparar tu caso.</p>
               </div>
             </div>
           </div>

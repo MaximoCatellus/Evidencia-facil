@@ -6,7 +6,6 @@ interface HeaderProps {
   activeCaseId?: string;
   hasAnalysis: boolean;
   onNewAnalysis: () => void;
-  onOpenJudicialReport?: () => void;
   onOpenPrivacyPolicy?: () => void;
   onOpenGuide?: () => void;
   onOpenFeedback?: () => void;
@@ -30,12 +29,12 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">EvidenciaFácil</span>
-              <span className="text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded">
-                E-Discovery Judicial
+              <span className="text-[10px] sm:text-[11px] font-mono text-slate-600 uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                Herramienta de Guía
               </span>
             </div>
             <p className="text-xs text-slate-500 hidden sm:block">
-              Auditoría forense documental, cronología procesal y detección de contradicciones
+              Organización cronológica de pruebas, cotejo documental y detección de contradicciones
             </p>
           </div>
         </div>

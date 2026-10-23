@@ -112,12 +112,17 @@ app.get("/api/health", (req, res) => {
 
 // Configure Vite integration for dev server or static serving in production
 async function startServer() {
-  const isCloudRun = process.env.K_SERVICE !== undefined || process.env.K_REVISION !== undefined || process.env.PORT === "8080";
-  const isStartScript = process.env.npm_lifecycle_event === "start";
-  const hasBuildDir = fs.existsSync(path.resolve(__dirname, "dist")) || fs.existsSync(path.resolve(__dirname, "build"));
-  const isProduction = process.env.NODE_ENV === "production" || isCloudRun || isStartScript || (hasBuildDir && process.env.NODE_ENV !== "development");
+  const isDev = process.env.NODE_ENV === "development";
+  const distDir = path.resolve(__dirname, "dist");
+  const buildDir = path.resolve(__dirname, "build");
+  const hasStaticDist = fs.existsSync(path.join(distDir, "index.html"));
+  const hasStaticBuild = fs.existsSync(path.join(buildDir, "index.html"));
+  const distPath = hasStaticDist ? distDir : hasStaticBuild ? buildDir : null;
 
-  if (!isProduction) {
+  // In development, or if static assets haven't been built yet, use Vite dev middlewares
+  const useVite = isDev || !distPath;
+
+  if (useVite) {
     const { createServer } = await import("vite");
     const vite = await createServer({
       server: {
@@ -132,10 +137,6 @@ async function startServer() {
 
     app.use(vite.middlewares);
   } else {
-    const distPath = fs.existsSync(path.resolve(__dirname, "dist"))
-      ? path.resolve(__dirname, "dist")
-      : path.resolve(__dirname, "build");
-
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.resolve(distPath, "index.html"));
@@ -143,7 +144,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[EvidenciaFácil] Servidor ejecutándose en http://0.0.0.0:${PORT} (modo: ${isProduction ? "producción" : "desarrollo"})`);
+    console.log(`[EvidenciaFácil] Servidor ejecutándose en http://0.0.0.0:${PORT} (modo: ${useVite ? "desarrollo (Vite)" : "producción (estático)"})`);
   });
 }
 

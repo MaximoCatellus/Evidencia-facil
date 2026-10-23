@@ -32,20 +32,20 @@ export const PrintReport: React.FC<PrintReportProps> = ({ analysis }) => {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-xl font-bold uppercase tracking-wide">
-              DICTAMEN PERICIAL DE E-DISCOVERY Y TRAZABILIDAD PROCESAL
+              REPORTE DE ANÁLISIS DE PRUEBAS Y CRONOLOGÍA DOCUMENTAL
             </h1>
             <p className="text-sm font-semibold mt-1">{resumen_caso?.titulo_caso || "Expediente Digital"}</p>
           </div>
           <div className="text-right text-[10px] text-gray-600">
             <p>FECHA: {new Date().toLocaleDateString("es-ES")}</p>
-            <p>EXPEDIENTE DIGITAL DE PRUEBAS</p>
+            <p>ANÁLISIS DE PRUEBAS · GUÍA PRELIMINAR</p>
           </div>
         </div>
       </div>
 
       {/* Ethics notice */}
       <div className="p-2.5 bg-gray-100 border border-gray-300 text-[10px] italic mb-6">
-        <strong>ADVERTENCIA LEGAL:</strong> Este reporte ha sido generado para estructuración fáctica, cotejo de fuentes y auxilio técnico. No reemplaza el criterio judicial, la valoración soberana de la prueba por el tribunal ni el patrocinio letrado.
+        <strong>ADVERTENCIA LEGAL Y DE USO:</strong> Este reporte ha sido generado exclusivamente como herramienta tecnológica de guía y organización documental preliminar. No constituye un dictamen pericial oficial, peritaje judicial colegiado ni resolución vinculante, y carece de valor pericial judicial oficial. No sustituye el patrocinio de un abogado letrado ni peritajes de juzgado.
       </div>
 
       {/* 1. Resumen Ejecutivo */}
@@ -268,13 +268,13 @@ export const PrintReport: React.FC<PrintReportProps> = ({ analysis }) => {
       {/* Signature block */}
       <div className="mt-12 pt-6 border-t border-gray-400 flex justify-between text-[10px]">
         <div>
-          <p className="font-bold">AUDITORÍA FORENSE DIGITAL & E-DISCOVERY</p>
-          <p>ESTÁNDAR ISO/IEC 27037 · TRAZABILIDAD 1:1</p>
-          <p className="text-[8px] text-gray-500 mt-0.5">Hash de verificación criptográfica incrustado</p>
+          <p className="font-bold">ORGANIZACIÓN DE PRUEBAS & E-DISCOVERY</p>
+          <p>HERRAMIENTA GUÍA DE ANÁLISIS DOCUMENTAL</p>
+          <p className="text-[8px] text-gray-500 mt-0.5">Hash de verificación técnica incrustado</p>
         </div>
         <div className="text-right">
-          <p className="font-bold">CONFORMIDAD PERICIAL / LETRADO PATROCINANTE</p>
-          <p className="mt-8 border-t border-black w-56 text-center pt-1 font-mono text-[9px]">Firma / R.U.T. / Matrícula Profesional</p>
+          <p className="font-bold">REGISTRO DE REVISIÓN</p>
+          <p className="mt-8 border-t border-black w-56 text-center pt-1 font-mono text-[9px]">Revisado por usuario / asesor</p>
         </div>
       </div>
     </div>

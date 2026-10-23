@@ -26,7 +26,6 @@ import { EvidentiaryGapsView } from "./components/EvidentiaryGapsView";
 import { BayesianGraphView } from "./components/BayesianGraphView";
 import { ArgumentGraphView } from "./components/ArgumentGraphView";
 import { CustodyChainView } from "./components/CustodyChainView";
-import { JudicialReportModal } from "./components/JudicialReportModal";
 import { PrivacyModal } from "./components/PrivacyModal";
 import { UserGuideView } from "./components/UserGuideView";
 import { AnonymousFeedbackModal } from "./components/AnonymousFeedbackModal";
@@ -52,11 +51,27 @@ export default function App() {
   const [selectedEventModal, setSelectedEventModal] = useState<TimelineEvent | null>(null);
   const [warningNotice, setWarningNotice] = useState<string | null>(null);
   const [isRestoredFromLocal, setIsRestoredFromLocal] = useState(false);
-  const [isJudicialReportOpen, setIsJudicialReportOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isFirstVisit, setIsFirstVisit] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isUploadZoneExpanded, setIsUploadZoneExpanded] = useState(false);
+
+  // Check first visit to open Guide pop-up automatically
+  useEffect(() => {
+    try {
+      const hasSeenGuide = localStorage.getItem("evidenciafacil_guide_seen_v1");
+      if (!hasSeenGuide) {
+        setIsFirstVisit(true);
+        const timer = setTimeout(() => {
+          setIsGuideModalOpen(true);
+        }, 350);
+        return () => clearTimeout(timer);
+      }
+    } catch (e) {
+      console.warn("No fue posible consultar localStorage para guía:", e);
+    }
+  }, []);
 
   // Restore analysis from localStorage on initial page load (Zero DB, Zero API cost on reload)
   useEffect(() => {
@@ -326,7 +341,6 @@ export default function App() {
         activeCaseId={activeCaseId}
         hasAnalysis={Boolean(analysis)}
         onNewAnalysis={handleNewAnalysis}
-        onOpenJudicialReport={() => setIsJudicialReportOpen(true)}
         onOpenPrivacyPolicy={() => setIsPrivacyModalOpen(true)}
         onOpenGuide={() => setIsGuideModalOpen(true)}
         onOpenFeedback={() => setIsFeedbackModalOpen(true)}
@@ -498,10 +512,7 @@ export default function App() {
             </div>
 
             {/* Export Toolbar */}
-            <ExportBar
-              analysis={analysis}
-              onOpenJudicialReport={() => setIsJudicialReportOpen(true)}
-            />
+            <ExportBar analysis={analysis} />
 
             {/* Dashboard Navigation Tabs */}
             <div className="border-b border-slate-200 flex items-center gap-1 sm:gap-2 overflow-x-auto pb-px print:hidden">
@@ -675,14 +686,7 @@ export default function App() {
           />
         )}
 
-        {/* Formal Judicial Report Modal */}
-        {isJudicialReportOpen && analysis && (
-          <JudicialReportModal
-            analysis={analysis}
-            files={files}
-            onClose={() => setIsJudicialReportOpen(false)}
-          />
-        )}
+
 
         {/* Peruvian Ley N° 29733 Privacy & Zero-Knowledge Modal */}
         <PrivacyModal
@@ -695,8 +699,16 @@ export default function App() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto print:hidden">
             <UserGuideView
               isModal={true}
-              onClose={() => setIsGuideModalOpen(false)}
-              onLoadSample={handleLoadSample}
+              isFirstVisit={isFirstVisit}
+              onClose={() => {
+                setIsGuideModalOpen(false);
+                setIsFirstVisit(false);
+              }}
+              onLoadSample={(caseId) => {
+                handleLoadSample(caseId);
+                setIsGuideModalOpen(false);
+                setIsFirstVisit(false);
+              }}
             />
           </div>
         )}

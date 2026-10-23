@@ -40,7 +40,7 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
             <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-              Auditoría Forense Digital · Dictamen E-Discovery
+              Herramienta de Guía · Análisis de Pruebas
             </span>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight mt-1">
               {summary?.titulo_caso || "Expediente de E-Discovery"}
