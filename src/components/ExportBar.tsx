@@ -18,45 +18,61 @@ export const ExportBar: React.FC<ExportBarProps> = ({ analysis, onOpenJudicialRe
     md += `**PERIODO:** ${s?.periodo_temporal?.inicio || "Inicio documentado"} a ${s?.periodo_temporal?.fin || "Fin documentado"}\n`;
     md += `**FECHA DE DICTAMEN:** ${new Date().toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}\n\n`;
 
-    md += `## 1. RESUMEN EJECUTIVO\n\n${s.resumen_ejecutivo}\n\n`;
+    md += `## 1. RESUMEN EJECUTIVO\n\n${s?.resumen_ejecutivo || "Auditoría forense digital y estructuración de los elementos probatorios incorporados en autos."}\n\n`;
 
-    md += `## 2. PARTES IDENTIFICADAS\n\n`;
-    s.partes_identificadas.forEach((p) => {
-      md += `- **${p.nombre}** (${p.rol}): ${p.detalles}\n`;
-    });
-    md += `\n`;
+    const partesList = Array.isArray(s?.partes_identificadas) ? s.partes_identificadas : [];
+    if (partesList.length > 0) {
+      md += `## 2. PARTES IDENTIFICADAS\n\n`;
+      partesList.forEach((p) => {
+        md += `- **${p.nombre || "Parte"}** (${p.rol || "Interviniente"}): ${p.detalles || "Consta en expediente"}\n`;
+      });
+      md += `\n`;
+    }
 
+    const cronoList = Array.isArray(analysis.cronologia) ? analysis.cronologia : [];
     md += `## 3. CRONOLOGÍA PROCESAL DE HECHOS (TRAZABILIDAD 1:1)\n\n`;
-    analysis.cronologia.forEach((ev) => {
-      md += `### [${ev.id}] ${ev.fecha_hora} - ${ev.tipo_evento} (Relevancia: ${ev.relevancia})\n`;
-      md += `**Hecho:** ${ev.hecho}\n`;
-      md += `**Personas:** ${ev.personas_involucradas.join(", ")}\n`;
-      md += `**Fuente:** \`${ev.fuente_documental}\`\n`;
-      md += `**Cita Literal:** > "${ev.cita_o_referencia}"\n`;
+    cronoList.forEach((ev, idx) => {
+      const id = ev.id || `H-${String(idx + 1).padStart(3, "0")}`;
+      const fecha = ev.fecha_hora || "Fecha documentada";
+      const tipo = ev.tipo_evento || "Actuación Procesal";
+      const rel = ev.relevancia || "Alta";
+      md += `### [${id}] ${fecha} - ${tipo} (Relevancia: ${rel})\n`;
+      md += `**Hecho:** ${ev.hecho || "Hecho documentado"}\n`;
+      if (Array.isArray(ev.personas_involucradas) && ev.personas_involucradas.length > 0) {
+        md += `**Personas:** ${ev.personas_involucradas.join(", ")}\n`;
+      }
+      md += `**Fuente:** \`${ev.fuente_documental || "Expediente Digital"}\`\n`;
+      md += `**Cita Literal:** > "${ev.cita_o_referencia || ev.hecho}"\n`;
       if (ev.analisis_procesal) {
         md += `**Pertinencia Procesal:** ${ev.analisis_procesal}\n`;
       }
       md += `\n`;
     });
 
-    if (analysis.contradicciones.length > 0) {
+    const contrasList = Array.isArray(analysis.contradicciones) ? analysis.contradicciones : [];
+    if (contrasList.length > 0) {
       md += `## 4. CONTRADICCIONES DETECTADAS\n\n`;
-      analysis.contradicciones.forEach((c) => {
-        md += `### [${c.id}] ${c.titulo} (Gravedad: ${c.nivel_gravedad})\n`;
-        md += `- **Versión A (${c.hecho_a.autor_o_parte} / ${c.hecho_a.fuente}):** "${c.hecho_a.declaracion}"\n`;
-        md += `- **Versión B (${c.hecho_b.autor_o_parte} / ${c.hecho_b.fuente}):** "${c.hecho_b.declaracion}"\n`;
-        md += `**Discrepancia:** ${c.explicacion_discrepancia}\n`;
-        md += `**Impacto Procesal:** ${c.impacto_procesal}\n\n`;
+      contrasList.forEach((c, idx) => {
+        const id = c.id || `C-${String(idx + 1).padStart(3, "0")}`;
+        const grav = c.nivel_gravedad || "Crítica";
+        md += `### [${id}] ${c.titulo || "Inconsistencia"} (Gravedad: ${grav})\n`;
+        md += `- **Versión A (${c.hecho_a?.autor_o_parte || "Parte A"} / ${c.hecho_a?.fuente || "Fuente A"}):** "${c.hecho_a?.declaracion || "Constancia inicial"}"\n`;
+        md += `- **Versión B (${c.hecho_b?.autor_o_parte || "Parte B"} / ${c.hecho_b?.fuente || "Fuente B"}):** "${c.hecho_b?.declaracion || "Constancia divergente"}"\n`;
+        md += `**Discrepancia:** ${c.explicacion_discrepancia || "Divergencia insubsanable entre versiones"}\n`;
+        md += `**Impacto Procesal:** ${c.impacto_procesal || "Afecta la credibilidad probatoria"}\n\n`;
       });
     }
 
-    if (analysis.vacios_probatorios.length > 0) {
+    const vaciosList = Array.isArray(analysis.vacios_probatorios) ? analysis.vacios_probatorios : [];
+    if (vaciosList.length > 0) {
       md += `## 5. VACÍOS PROBATORIOS Y DILIGENCIAS SUGERIDAS\n\n`;
-      analysis.vacios_probatorios.forEach((g) => {
-        md += `### [${g.id}] ${g.descripcion} (Prioridad: ${g.prioridad})\n`;
-        md += `- **Periodo Afectado:** ${g.hecho_o_periodo_afectado}\n`;
-        md += `- **Riesgo:** ${g.riesgo_procesal}\n`;
-        md += `- **Diligencia Sugerida:** ${g.diligencia_o_prueba_sugerida}\n\n`;
+      vaciosList.forEach((g, idx) => {
+        const id = g.id || `V-${String(idx + 1).padStart(3, "0")}`;
+        const prio = g.prioridad || "Alta";
+        md += `### [${id}] ${g.descripcion || "Laguna probatoria"} (Prioridad: ${prio})\n`;
+        md += `- **Periodo Afectado:** ${g.hecho_o_periodo_afectado || "Periodo en litigio"}\n`;
+        md += `- **Riesgo:** ${g.riesgo_procesal || "Riesgo de duda razonable"}\n`;
+        md += `- **Diligencia Sugerida:** ${g.diligencia_o_prueba_sugerida || "Solicitar prueba de informes o exhibición"}\n\n`;
       });
     }
 
@@ -84,7 +100,8 @@ export const ExportBar: React.FC<ExportBarProps> = ({ analysis, onOpenJudicialRe
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Reporte_EDiscovery_${analysis.resumen_caso.titulo_caso.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30)}.md`;
+    const safeTitle = (analysis.resumen_caso?.titulo_caso || "Caso").replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+    link.download = `Reporte_EDiscovery_${safeTitle}.md`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -97,7 +114,8 @@ export const ExportBar: React.FC<ExportBarProps> = ({ analysis, onOpenJudicialRe
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `EDiscovery_Forense_${analysis.resumen_caso.titulo_caso.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30)}.json`;
+    const safeTitle = (analysis.resumen_caso?.titulo_caso || "Caso").replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+    link.download = `EDiscovery_Forense_${safeTitle}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -132,8 +150,8 @@ export const ExportBar: React.FC<ExportBarProps> = ({ analysis, onOpenJudicialRe
           <button
             type="button"
             onClick={onOpenJudicialReport}
-            className="flex-1 sm:flex-none px-3.5 py-2 text-xs font-bold bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 shadow-2xs"
-            title="Abrir Dictamen Pericial Judicial completo con modelado bayesiano y cadena de custodia"
+            className="flex-1 sm:flex-none px-3.5 py-2 text-xs font-bold bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+            title="Abrir Dictamen Pericial Judicial completo con carátula de juzgado, modelado bayesiano de certeza y cadena de custodia"
           >
             <Award className="w-3.5 h-3.5" />
             <span>Dictamen Pericial Judicial</span>
@@ -144,20 +162,21 @@ export const ExportBar: React.FC<ExportBarProps> = ({ analysis, onOpenJudicialRe
         <button
           type="button"
           onClick={handlePrint}
-          className="flex-1 sm:flex-none px-3.5 py-2 text-xs font-semibold bg-white text-slate-900 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 shadow-xs"
+          className="flex-1 sm:flex-none px-3.5 py-2 text-xs font-semibold bg-white text-slate-900 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
         >
           <Printer className="w-3.5 h-3.5 text-blue-600" />
           <span>Imprimir / PDF</span>
         </button>
 
-        {/* Markdown Export */}
+        {/* Markdown Export (Reporte E-Discovery Clásico) */}
         <button
           type="button"
           onClick={handleDownloadMarkdown}
-          className="flex-1 sm:flex-none px-3.5 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 border border-slate-700"
+          className="flex-1 sm:flex-none px-3.5 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 border border-slate-700 cursor-pointer"
+          title="Descargar el informe pericial estructurado de E-Discovery en Markdown (.md)"
         >
           <Download className="w-3.5 h-3.5" />
-          <span>Markdown (.md)</span>
+          <span>Reporte E-Discovery (.md)</span>
         </button>
 
         {/* JSON Export */}

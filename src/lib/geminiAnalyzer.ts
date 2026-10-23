@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { EvidenceFilePayload, sanitizePromptInput, generateTailoredAnalysis } from "./tailoredAnalysis.ts";
+import { type EvidenceFilePayload, sanitizePromptInput, generateTailoredAnalysis, normalizeAnalysisResult } from "./tailoredAnalysis.ts";
 
 export const analysisResponseSchema = {
   type: Type.OBJECT,
@@ -100,6 +100,43 @@ export const analysisResponseSchema = {
         required: ["id", "descripcion", "hecho_o_periodo_afectado", "riesgo_procesal", "diligencia_o_prueba_sugerida", "prioridad"]
       }
     },
+    red_bayesiana: {
+      type: Type.OBJECT,
+      properties: {
+        hipotesis: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING },
+            descripcion: { type: Type.STRING, description: "Hipótesis fáctica o jurídica principal a contrastar" },
+            estado_positivo: { type: Type.STRING },
+            estado_negativo: { type: Type.STRING },
+            probabilidad_a_priori: { type: Type.NUMBER, description: "0.50 como punto neutral imparcial" },
+            fundamentacion_previa: { type: Type.STRING }
+          },
+          required: ["id", "descripcion", "estado_positivo", "estado_negativo", "probabilidad_a_priori", "fundamentacion_previa"]
+        },
+        evidencias: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              nombre: { type: Type.STRING, description: "Denominación concisa del indicio o prueba" },
+              descripcion: { type: Type.STRING },
+              fuente_documental: { type: Type.STRING },
+              cita_clave: { type: Type.STRING },
+              probabilidad_si_hipotesis_cierta: { type: Type.NUMBER, description: "P(E|H) ej. 0.85" },
+              probabilidad_si_hipotesis_falsa: { type: Type.NUMBER, description: "P(E|~H) ej. 0.15" },
+              justificacion_probabilistica: { type: Type.STRING },
+              estado_observado: { type: Type.STRING, description: "presente, ausente o desconocida" }
+            },
+            required: ["id", "nombre", "descripcion", "fuente_documental", "cita_clave", "probabilidad_si_hipotesis_cierta", "probabilidad_si_hipotesis_falsa", "justificacion_probabilistica", "estado_observado"]
+          }
+        },
+        tesis_probatoria: { type: Type.STRING }
+      },
+      required: ["hipotesis", "evidencias", "tesis_probatoria"]
+    },
     recomendaciones_legales: {
       type: Type.ARRAY,
       items: { type: Type.STRING },
@@ -115,7 +152,7 @@ export const analysisResponseSchema = {
       required: ["total_documentos", "calidad_evidencia", "alerta_integridad"]
     }
   },
-  required: ["resumen_caso", "cronologia", "contradicciones", "vacios_probatorios", "recomendaciones_legales", "metadata_analisis"]
+  required: ["resumen_caso", "cronologia", "contradicciones", "vacios_probatorios", "red_bayesiana", "recomendaciones_legales", "metadata_analisis"]
 };
 
 export async function processForensicEvidence(
@@ -250,6 +287,7 @@ Debes responder ÚNICAMENTE con un objeto JSON válido (sin bloques de código m
           config: {
             systemInstruction: systemInstructionForense,
             responseMimeType: "application/json",
+            responseSchema: analysisResponseSchema,
             temperature: 0.1
           }
         });
@@ -257,7 +295,8 @@ Debes responder ÚNICAMENTE con un objeto JSON válido (sin bloques de código m
         const outputText = response.text;
         if (outputText) {
           const cleanJson = outputText.trim().replace(/^```json/i, "").replace(/```$/i, "").trim();
-          structuredData = JSON.parse(cleanJson);
+          const parsed = JSON.parse(cleanJson);
+          structuredData = normalizeAnalysisResult(parsed, files);
           console.log(`[EvidenciaFácil] Éxito pericial con ${modelName}. Título:`, structuredData.resumen_caso?.titulo_caso);
           break;
         }
@@ -276,7 +315,7 @@ Debes responder ÚNICAMENTE con un objeto JSON válido (sin bloques de código m
 
   if (!structuredData) {
     console.warn("[EvidenciaFácil] Modelos remotos ocupados. Generando análisis estructurado con motor local.");
-    structuredData = generateTailoredAnalysis(files, caseContext);
+    structuredData = normalizeAnalysisResult(generateTailoredAnalysis(files, caseContext), files);
     return {
       success: true,
       isDemo: false,

@@ -353,7 +353,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
             onClick={() => onLoadSample("disputa-contractual")}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
           >
-            <span>Probar Disputa Contrato & Chat</span>
+            <span>Disputa Contrato & Chat</span>
           </button>
           <button
             type="button"
@@ -361,6 +361,13 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
             className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition-colors cursor-pointer"
           >
             <span>Despido & Horas Extra</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onLoadSample("resolucion-tribunal-fiscal")}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition-colors cursor-pointer"
+          >
+            <span>⚖️ Res. Tribunal Fiscal</span>
           </button>
         </div>
       </div>

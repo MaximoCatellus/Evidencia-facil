@@ -36,7 +36,7 @@ import { PrintReport } from "./components/PrintReport";
 import { UploadedFile, AnalysisResult, TimelineEvent } from "./types/ediscovery";
 import { SAMPLE_CASES } from "./data/sampleCases";
 import { sortAndNormalizeChronology, detectEvidentiaryGaps } from "./lib/chronologyEngine";
-import { generateTailoredAnalysis } from "./lib/tailoredAnalysis";
+import { generateTailoredAnalysis, normalizeAnalysisResult } from "./lib/tailoredAnalysis";
 
 export default function App() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -67,21 +67,10 @@ export default function App() {
 
       if (cachedAnalysis) {
         const parsed = JSON.parse(cachedAnalysis);
-        if (parsed) {
-          if (!Array.isArray(parsed.recomendaciones_legales)) {
-            parsed.recomendaciones_legales = typeof parsed.recomendaciones_legales === "string"
-              ? parsed.recomendaciones_legales.split(/\r?\n/).map((s: string) => s.trim().replace(/^[-*•\d.]+\s*/, "")).filter(Boolean)
-              : [];
-          }
-          if (!Array.isArray(parsed.cronologia)) parsed.cronologia = [];
-          if (!Array.isArray(parsed.contradicciones)) parsed.contradicciones = [];
-          if (!Array.isArray(parsed.vacios_probatorios)) parsed.vacios_probatorios = [];
-        }
-        setAnalysis(parsed);
-        setIsRestoredFromLocal(true);
+        let safeFiles: any[] = [];
         if (cachedFiles) {
           const rawFiles = JSON.parse(cachedFiles);
-          const safeFiles = Array.isArray(rawFiles)
+          safeFiles = Array.isArray(rawFiles)
             ? rawFiles.map((f: any, i: number) => ({
                 ...f,
                 id: f.id || `restored-${i}-${f.name || "file"}`
@@ -89,6 +78,9 @@ export default function App() {
             : [];
           setFiles(safeFiles);
         }
+        const healed = normalizeAnalysisResult(parsed, safeFiles);
+        setAnalysis(healed);
+        setIsRestoredFromLocal(true);
         if (cachedContext) {
           setCaseContext(cachedContext);
         }
@@ -162,10 +154,11 @@ export default function App() {
       }));
 
       const rawAnalysis = generateTailoredAnalysis(payloadFiles, caseContext);
-      const sortedEvents = sortAndNormalizeChronology(rawAnalysis.cronologia || []);
+      const normalizedBase = normalizeAnalysisResult(rawAnalysis, payloadFiles);
+      const sortedEvents = sortAndNormalizeChronology(normalizedBase.cronologia || []);
       const detectedGaps = detectEvidentiaryGaps(sortedEvents, 30);
 
-      const mergedGaps = [...(rawAnalysis.vacios_probatorios || [])];
+      const mergedGaps = [...(normalizedBase.vacios_probatorios || [])];
       detectedGaps.forEach((dg: any) => {
         if (!mergedGaps.some((g: any) => g.hecho_o_periodo_afectado?.includes(dg.periodoAfectado))) {
           mergedGaps.push({
@@ -179,12 +172,11 @@ export default function App() {
         }
       });
 
-      const enrichedAnalysis: AnalysisResult = {
-        ...rawAnalysis,
+      const enrichedAnalysis: AnalysisResult = normalizeAnalysisResult({
+        ...normalizedBase,
         cronologia: sortedEvents as unknown as TimelineEvent[],
-        vacios_probatorios: mergedGaps as any,
-        recomendaciones_legales: rawAnalysis.recomendaciones_legales
-      };
+        vacios_probatorios: mergedGaps as any
+      }, payloadFiles);
 
       setAnalysis(enrichedAnalysis);
       setIsRestoredFromLocal(false);
@@ -271,14 +263,13 @@ export default function App() {
 
       setLoadingStep("Estructurando cronología judicial y calculando vacíos probatorios...");
 
-      // ALGORITMO DETERMINISTA EN CLIENTE (lib/chronologyEngine.ts):
-      // 1. Ordenación cronológica exacta en JavaScript nativo
-      const sortedEvents = sortAndNormalizeChronology(data.data.cronologia || []);
+      const normalizedBase = normalizeAnalysisResult(data.data, payloadFiles);
+      const sortedEvents = sortAndNormalizeChronology(normalizedBase.cronologia || []);
 
       // 2. Detección automática de vacíos probatorios (silencio > 30 días) sin llamadas a la API
       const detectedGaps = detectEvidentiaryGaps(sortedEvents, 30);
 
-      const mergedGaps = [...(data.data.vacios_probatorios || [])];
+      const mergedGaps = [...(normalizedBase.vacios_probatorios || [])];
       detectedGaps.forEach((dg: any) => {
         if (!mergedGaps.some((g: any) => g.hecho_o_periodo_afectado?.includes(dg.periodoAfectado))) {
           mergedGaps.push({
@@ -292,19 +283,11 @@ export default function App() {
         }
       });
 
-      let recs = data.data.recomendaciones_legales;
-      if (!Array.isArray(recs)) {
-        recs = typeof recs === "string"
-          ? recs.split(/\r?\n/).map((s: string) => s.trim().replace(/^[-*•\d.]+\s*/, "")).filter(Boolean)
-          : [];
-      }
-
-      const enrichedAnalysis: AnalysisResult = {
-        ...data.data,
+      const enrichedAnalysis: AnalysisResult = normalizeAnalysisResult({
+        ...normalizedBase,
         cronologia: sortedEvents as unknown as TimelineEvent[],
-        vacios_probatorios: mergedGaps as any,
-        recomendaciones_legales: recs
-      };
+        vacios_probatorios: mergedGaps as any
+      }, payloadFiles);
 
       setAnalysis(enrichedAnalysis);
       setIsRestoredFromLocal(false);

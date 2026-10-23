@@ -544,5 +544,205 @@ Por medio de la presente, la gerencia de Recursos Humanos le notifica su desvinc
         }
       ]
     }
+  },
+  {
+    id: "resolucion-tribunal-fiscal",
+    title: "Resolución Tribunal Fiscal N° 06836-5-2025",
+    category: "Derecho Tributario / Administrativo",
+    description: "Determinación sobre base presunta por SUNAT, omisión de libros contables legalizados y resolución colegiada confirmatoria del Tribunal Fiscal.",
+    suggestedContext: "Resolución del Tribunal Fiscal N° 06836-5-2025: Controversia sobre determinación de Impuesto a la Renta del ejercicio 2015 sobre base presunta ante la no exhibición de libros contables requeridos.",
+    files: [
+      {
+        id: "rtf-1",
+        name: "2025_5_06836.pdf",
+        type: "application/pdf",
+        size: 1481113,
+        sha256: "6ae99c814402924082c38e92dda807e8ec1c20012d0ed6b17f028efaacc2fb30",
+        textContent: `TRIBUNAL FISCAL - RESOLUCIÓN N° 06836-5-2025
+Lima, 24 de julio de 2025
+VISTA la apelación interpuesta por el recurrente contra la Resolución de Intendencia que declaró infundada la reclamación contra los Valores emitidos por Impuesto a la Renta del ejercicio gravable 2015 y multa vinculada.
+CONSIDERANDO:
+Que mediante Carta y Requerimientos de fiscalización notificados el 29 de diciembre de 2020 en el buzón electrónico SOL, la Administración requirió la exhibición de los Libros Diario, Caja y Bancos y Registro de Compras legalizados.
+Que el recurrente no cumplió con exhibir la documentación solicitada, incurriendo en la causal habilitante para la determinación sobre base presunta conforme al artículo 64 del Código Tributario.
+Que la SUNAT determinó la renta neta presunta aplicando el promedio del sector de contribuyentes similares.
+RESUELVE: CONFIRMAR la resolución apelada en todos sus extremos.`,
+        category: "contract"
+      }
+    ],
+    precomputedResult: {
+      resumen_caso: {
+        titulo_caso: "Resolución del Tribunal Fiscal N° 06836-5-2025 - Impugnación de Determinación Tributaria",
+        resumen_ejecutivo: "El Tribunal Fiscal resuelve confirmar la resolución apelada que declaró infundada la reclamación de un contribuyente contra la SUNAT respecto a una determinación de Impuesto a la Renta y multa del ejercicio 2015. La controversia se centra en la aplicación de la determinación sobre base presunta por parte de la Administración, debido a que el contribuyente no proporcionó la documentación contable requerida (Libros Diario, Caja y Bancos, etc.) para sustentar su base cierta. El Tribunal concluye que la SUNAT actuó conforme a derecho al aplicar la presunción de renta neta basada en el promedio de empresas similares, dado que el recurrente incumplió con sus obligaciones formales de exhibir registros contables.",
+        periodo_temporal: {
+          inicio: "2015-01-01",
+          fin: "2025-07-24"
+        },
+        partes_identificadas: [
+          {
+            nombre: "Tribunal Fiscal",
+            rol: "Autoridad Resolutora Colegiada",
+            detalles: "Órgano colegiado emisor de la Resolución N° 06836-5-2025 en última instancia administrativa."
+          },
+          {
+            nombre: "SUNAT (Superintendencia Nacional de Aduanas y de Administración Tributaria)",
+            rol: "Administración Tributaria / Fiscalizadora",
+            detalles: "Entidad fiscalizadora emisora de los requerimientos y valores de determinación presunta."
+          },
+          {
+            nombre: "Contribuyente Recurrente",
+            rol: "Sujeto Pasivo / Demandante",
+            detalles: "Contribuyente sujeto a fiscalización definitiva por Impuesto a la Renta 2015."
+          }
+        ]
+      },
+      cronologia: [
+        {
+          id: "H-001",
+          fecha_hora: "2020-12-29 10:00",
+          hecho: "Notificación de requerimientos de fiscalización definitiva por parte de SUNAT.",
+          personas_involucradas: ["SUNAT", "Contribuyente Recurrente"],
+          fuente_documental: "2025_5_06836.pdf (Pág. 2)",
+          cita_o_referencia: "'La citada carta y requerimientos fueron depositados el 29 de diciembre de 2020, en el buzón electrónico SOL'",
+          relevancia: "Alta",
+          tipo_evento: "Notificación Administrativa",
+          analisis_procesal: "Inicio formal del procedimiento de fiscalización definitiva fijando la carga de exhibición."
+        },
+        {
+          id: "H-002",
+          fecha_hora: "2023-04-27 12:00",
+          hecho: "Emisión de la resolución de intendencia que declara infundada la reclamación del contribuyente.",
+          personas_involucradas: ["SUNAT"],
+          fuente_documental: "2025_5_06836.pdf (Pág. 10)",
+          cita_o_referencia: "'CONFIRMAR la Resolución de Intendencia de 27 de abril de 2023'",
+          relevancia: "Alta",
+          tipo_evento: "Resolución de Intendencia",
+          analisis_procesal: "Acto administrativo sancionatorio impugnado en grado de apelación ante el Tribunal Fiscal."
+        },
+        {
+          id: "H-003",
+          fecha_hora: "2025-07-24 11:30",
+          hecho: "Emisión de la Resolución del Tribunal Fiscal N° 06836-5-2025 confirmando la determinación de la SUNAT.",
+          personas_involucradas: ["Tribunal Fiscal"],
+          fuente_documental: "2025_5_06836.pdf (Pág. 1)",
+          cita_o_referencia: "'Lima, 24 de julio de 2025. CONFIRMAR la resolución apelada.'",
+          relevancia: "Alta",
+          tipo_evento: "Resolución Firme en Sede Administrativa",
+          analisis_procesal: "Agotamiento de la vía administrativa con plena validez de la determinación presunta."
+        }
+      ],
+      contradicciones: [
+        {
+          id: "C-001",
+          titulo: "Sustento de la Base Presunta vs. Omisión de Exhibición de Libros Contables",
+          hecho_a: {
+            declaracion: "El recurrente sostiene que la Administración Tributaria no acreditó la causal habilitante para aplicar base presunta.",
+            fuente: "2025_5_06836.pdf (Pág. 1)",
+            autor_o_parte: "Contribuyente Recurrente"
+          },
+          hecho_b: {
+            declaracion: "El Tribunal constata que el recurrente no proporcionó los libros contables requeridos, habilitando legalmente la base presunta.",
+            fuente: "2025_5_06836.pdf (Pág. 5)",
+            autor_o_parte: "Tribunal Fiscal"
+          },
+          explicacion_discrepancia: "El contribuyente aduce falta de motivación de la SUNAT, pero el expediente comprueba que su propia omisión de exhibir libros contables legalizados forzó legalmente la estimación presunta.",
+          impacto_procesal: "Desvirtúa la pretensión anulatoria del recurrente al constatar el incumplimiento del deber de colaboración probatoria.",
+          nivel_gravedad: "Crítica"
+        }
+      ],
+      vacios_probatorios: [
+        {
+          id: "V-001",
+          descripcion: "Ausencia de libros contables legalizados y registros de compras/ventas del ejercicio 2015 en el expediente",
+          hecho_o_periodo_afectado: "Ejercicio Fiscal 2015",
+          riesgo_procesal: "Imposibilidad jurídica y material de determinar la obligación tributaria sobre base cierta.",
+          diligencia_o_prueba_sugerida: "Exhibición pericial contable de libros legalizados con fecha anterior al inicio de fiscalización.",
+          prioridad: "Alta"
+        },
+        {
+          id: "V-002",
+          descripcion: "Silencio procesal prolongado (849 días) entre el requerimiento y la resolución de intendencia",
+          hecho_o_periodo_afectado: "2020-12-29 al 2023-04-27 (849 días)",
+          riesgo_procesal: "Posible afectación al plazo legal del procedimiento o cómputo de intereses moratorios.",
+          diligencia_o_prueba_sugerida: "Cotejar el expediente administrativo completo para verificar eventuales suspensiones del plazo prescriptorio.",
+          prioridad: "Media"
+        }
+      ],
+      red_bayesiana: {
+        hipotesis: {
+          id: "H-TRIBUTARIO",
+          descripcion: "La SUNAT actuó conforme a derecho al aplicar la determinación sobre base presunta y multa tributaria",
+          estado_positivo: "Determinación Presunta Legítima y Válida",
+          estado_negativo: "Determinación Nula / Ilegítima por Falta de Causal",
+          probabilidad_a_priori: 0.50,
+          fundamentacion_previa: "Punto de partida neutral (50%) en tutela de la presunción de legalidad del acto administrativo y el derecho de defensa."
+        },
+        evidencias: [
+          {
+            id: "E-001",
+            nombre: "Requerimientos Notificados en Buzón Electrónico SOL",
+            descripcion: "Depósito formal de carta y requerimientos de fiscalización definitiva el 29/12/2020.",
+            fuente_documental: "2025_5_06836.pdf",
+            cita_clave: "'La citada carta y requerimientos fueron depositados el 29 de diciembre de 2020, en el buzón electrónico SOL'",
+            probabilidad_si_hipotesis_cierta: 0.95,
+            probabilidad_si_hipotesis_falsa: 0.10,
+            justificacion_probabilistica: "Notificación válida y fehaciente que desvirtúa indefensión formal y fija el inicio de la fiscalización.",
+            estado_observado: "presente",
+            nivel_autenticidad: 1.0,
+            motivo_impugnacion: "Notificación en buzón electrónico regulada por el Código Tributario."
+          },
+          {
+            id: "E-002",
+            nombre: "Inobservancia de Exhibición de Libros Caja, Bancos y Diario",
+            descripcion: "Causal objetiva del artículo 64 del Código Tributario para aplicar base presunta.",
+            fuente_documental: "2025_5_06836.pdf",
+            cita_clave: "'...el contribuyente no proporcionó la documentación contable requerida para sustentar su base cierta...'",
+            probabilidad_si_hipotesis_cierta: 0.92,
+            probabilidad_si_hipotesis_falsa: 0.12,
+            justificacion_probabilistica: "Causal taxativa de la ley que habilita a la Administración a aplicar promedios sectoriales.",
+            estado_observado: "presente",
+            nivel_autenticidad: 1.0,
+            motivo_impugnacion: "Constatación formal en actas de cierre de requerimiento."
+          },
+          {
+            id: "E-003",
+            nombre: "Resolución del Tribunal Fiscal Colegiado Confirmando la Sanción",
+            descripcion: "Pronunciamiento vinculante del órgano resolutor colegiado desestimando la apelación.",
+            fuente_documental: "2025_5_06836.pdf",
+            cita_clave: "'CONFIRMAR la Resolución apelada que declaró infundada la reclamación.'",
+            probabilidad_si_hipotesis_cierta: 0.90,
+            probabilidad_si_hipotesis_falsa: 0.15,
+            justificacion_probabilistica: "Máxima certeza colegiada en sede administrativa sobre la adecuación normativa de la SUNAT.",
+            estado_observado: "presente",
+            nivel_autenticidad: 1.0,
+            motivo_impugnacion: "Resolución administrativa firme que agota la vía previa."
+          }
+        ],
+        tesis_probatoria: "La acreditación fehaciente de la notificación electrónica y la comprobada omisión de libros habilitan de manera concluyente la determinación sobre base presunta."
+      },
+      recomendaciones_legales: [
+        "Evaluar la interposición de demanda contencioso-administrativa dentro del plazo de 3 meses si existiera prueba pericial superviniente de base cierta.",
+        "Verificar la suspensión o prescripción de la facultad de cobro respecto a los intereses moratorios acumulados durante los periodos de silencio administrativo."
+      ],
+      metadata_analisis: {
+        total_documentos: 1,
+        calidad_evidencia: "Sólida",
+        alerta_integridad: "Documento oficial del Tribunal Fiscal con hash criptográfico SHA-256 verificado."
+      },
+      cadena_custodia: [
+        {
+          id: "CC-TF-01",
+          nombre_archivo: "2025_5_06836.pdf",
+          tipo: "application/pdf",
+          tamano_bytes: 1481113,
+          sha256: "6ae99c814402924082c38e92dda807e8ec1c20012d0ed6b17f028efaacc2fb30",
+          fecha_fijacion: "2025-07-25T08:00:00Z",
+          algoritmo: "SHA-256 (FIPS-180-4)",
+          estado_integridad: "Intacto / Verificado",
+          hechos_relacionados: ["H-001", "H-002", "H-003"],
+          evidencias_relacionadas: ["E-001", "E-002", "E-003"],
+          observaciones_forenses: "Expediente oficial en PDF original con metadatos de emisión auténticos."
+        }
+      ]
+    }
   }
 ];

@@ -1,5 +1,5 @@
 import { processForensicEvidence } from "../src/lib/geminiAnalyzer.ts";
-import { generateTailoredAnalysis } from "../src/lib/tailoredAnalysis.ts";
+import { generateTailoredAnalysis, normalizeAnalysisResult } from "../src/lib/tailoredAnalysis.ts";
 
 export const config = {
   maxDuration: 60,
@@ -39,7 +39,7 @@ export default async function handler(req: any, res: any) {
 
     // Si no hay API key en las variables de entorno de Vercel, proveer análisis procesal inmediato
     if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey.trim() === "") {
-      const fallbackData = generateTailoredAnalysis(files, caseContext);
+      const fallbackData = normalizeAnalysisResult(generateTailoredAnalysis(files, caseContext), files);
       return res.status(200).json({
         success: true,
         isDemo: true,

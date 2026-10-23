@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { AnalysisResult, UploadedFile } from "../types/ediscovery";
 import { runBayesianInference } from "../lib/bayesianEngine";
+import { generateDictamenJudicial } from "../lib/exportUtils";
 
 interface JudicialReportModalProps {
   analysis: AnalysisResult;
@@ -40,78 +41,11 @@ export const JudicialReportModal: React.FC<JudicialReportModalProps> = ({
 
   // Generate plain text / Markdown for legal briefs
   const generateLegalText = () => {
-    const s = analysis.resumen_caso;
-    let txt = `========================================================================================\n`;
-    txt += `DICTAMEN PERICIAL FORENSE: EVALUACIÓN PROBATORIA Y MODELADO DE INCERTIDUMBRE\n`;
-    txt += `TRIBUNAL: ${tribunal}\n`;
-    txt += `CAUSA / ROL / EXPEDIENTE: ${causaNumero}\n`;
-    txt += `PERITO / ANALISTA RESPONSABLE: ${peritoNombre}\n`;
-    txt += `FECHA DE EMISIÓN: ${new Date().toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}\n`;
-    txt += `========================================================================================\n\n`;
-
-    txt += `I. OBJETO DE LA PERICIA Y CARÁTULA\n`;
-    txt += `Caso: ${s?.titulo_caso || "Expediente Digital"}\n`;
-    txt += `Periodo Documentado: ${s?.periodo_temporal?.inicio || "Inicio documentado"} al ${s?.periodo_temporal?.fin || "Fin documentado"}\n`;
-    txt += `Resumen Fáctico:\n${s.resumen_ejecutivo}\n\n`;
-
-    if (bayesianResult && analysis.red_bayesiana) {
-      const net = analysis.red_bayesiana;
-      txt += `II. EVALUACIÓN PROBATORIA MEDIANTE INFERENCIA BAYESIANA (TEOREMA DE BAYES)\n`;
-      txt += `1. Hipótesis Principal a Contrastar (H): "${net.hipotesis.descripcion}"\n`;
-      txt += `2. Probabilidad a Priori P(H): ${(bayesianResult.probabilidad_a_priori * 100).toFixed(1)}% (Odds: ${bayesianResult.odds_a_priori.toFixed(2)})\n`;
-      txt += `3. Probabilidad a Posteriori Final P(H|E): ${(bayesianResult.probabilidad_a_posteriori * 100).toFixed(1)}% (Odds: ${bayesianResult.odds_a_posteriori.toFixed(2)})\n`;
-      txt += `4. Factor de Bayes Global (Global Bayes Factor): ${bayesianResult.factor_bayes_global.toFixed(2)}\n`;
-      txt += `5. Peso Probatorio Acumulado: ${bayesianResult.peso_probatorio_total_db.toFixed(1)} Decibanes (dB)\n`;
-      txt += `6. Estándar Probatorio Alcanzado: ${bayesianResult.estandar_probatorio_alcanzado} (${bayesianResult.nivel_certeza})\n\n`;
-
-      txt += `7. Desglose Pericial de Nodos de Evidencia (con atenuación por Autenticidad):\n`;
-      bayesianResult.nodos.forEach((n, i) => {
-        txt += `   [E-${i + 1}] ${n.nombre}\n`;
-        txt += `        - Estado de Admisión: ${n.estado_observado.toUpperCase()}\n`;
-        txt += `        - Nivel de Autenticidad / Integridad P(A): ${((n.nivel_autenticidad ?? 1.0) * 100).toFixed(0)}%\n`;
-        if (n.motivo_impugnacion) {
-          txt += `        - Observación de Tacha: ${n.motivo_impugnacion}\n`;
-        }
-        txt += `        - Razón de Verosimilitud (LR): Nominal = ${n.razon_verosimilitud_nominal.toFixed(2)} | Efectivo = ${n.razon_verosimilitud.toFixed(2)}\n`;
-        txt += `        - Peso en Decibanes (dB): ${n.peso_evidencia_db.toFixed(1)} dB (${n.fuerza_probatoria})\n`;
-        txt += `        - Fuente Documental: ${n.fuente_documental}\n`;
-        txt += `        - Cita Textual Literal: "${n.cita_clave}"\n\n`;
-      });
-    }
-
-    txt += `III. CRONOLOGÍA PROCESAL DE HECHOS (TRAZABILIDAD 1:1)\n`;
-    (Array.isArray(analysis.cronologia) ? analysis.cronologia : []).forEach((ev) => {
-      txt += `- [${ev.fecha_hora}] ${ev.hecho} (Relevancia: ${ev.relevancia})\n`;
-      txt += `  Fuente: ${ev.fuente_documental} | Cita Literal: "${ev.cita_o_referencia}"\n`;
+    return generateDictamenJudicial(analysis, files, {
+      tribunal,
+      causaNumero,
+      peritoNombre
     });
-    txt += `\n`;
-
-    const vaciosList = Array.isArray(analysis.vacios_probatorios) ? analysis.vacios_probatorios : [];
-    if (vaciosList.length > 0) {
-      txt += `IV. VACÍOS PROBATORIOS Y RIESGOS DE ORFANDAD PROBATORIA\n`;
-      vaciosList.forEach((g) => {
-        txt += `- [${g.id}] ${g.descripcion} (Prioridad: ${g.prioridad})\n`;
-        txt += `  Periodo afectado: ${g.hecho_o_periodo_afectado}\n`;
-        txt += `  Riesgo Procesal: ${g.riesgo_procesal}\n`;
-        txt += `  Diligencia sugerida: ${g.diligencia_o_prueba_sugerida}\n\n`;
-      });
-    }
-
-    txt += `V. REGISTRO DE CADENA DE CUSTODIA (HUELLAS HASH SHA-256)\n`;
-    (Array.isArray(files) ? files : []).forEach((f, idx) => {
-      txt += `[${idx + 1}] ${f.name}\n`;
-      txt += `    Hash SHA-256: ${f.sha256 || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}\n`;
-      txt += `    Tamaño: ${(f.size / 1024).toFixed(1)} KB | Estado: Intacto y Verificado\n\n`;
-    });
-
-    txt += `VI. DECLARACIÓN JURADA DE IDONEIDAD TÉCNICA Y PRIVACIDAD (LEY 29733 - PERÚ)\n`;
-    txt += `1. El presente dictamen ha sido elaborado mediante métodos matemáticos deterministas objetivos y análisis de procesamiento de lenguaje natural. Los cálculos bayesianos se ejecutan de manera auditable y matemática pura.\n`;
-    txt += `2. Conforme a la Ley N° 29733 (Ley de Protección de Datos Personales del Perú) y su Reglamento (D.S. 003-2013-JUS), se certifica que los chats, documentos y medios probatorios aportados no han sido alojados en ningún servidor privado externo, ejecutándose el procesamiento de forma soberana y local.\n\n`;
-    txt += `_____________________________________________\n`;
-    txt += `Firma Perito / Analista Responsable\n`;
-    txt += `${peritoNombre}\n`;
-
-    return txt;
   };
 
   const handleCopy = () => {
@@ -138,11 +72,12 @@ export const JudicialReportModal: React.FC<JudicialReportModalProps> = ({
 
   const handleDownloadHTML = () => {
     const text = generateLegalText();
+    const tituloDoc = analysis.resumen_caso?.titulo_caso || "Expediente Digital";
     const htmlContent = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Dictamen Pericial Judicial - ${analysis.resumen_caso.titulo_caso}</title>
+  <title>Dictamen Pericial Judicial - ${tituloDoc}</title>
   <style>
     body { font-family: "Times New Roman", Times, serif; font-size: 13px; line-height: 1.6; color: #111; padding: 40px; max-width: 850px; margin: auto; }
     h1 { font-size: 18px; text-transform: uppercase; text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; }
@@ -156,7 +91,7 @@ export const JudicialReportModal: React.FC<JudicialReportModalProps> = ({
   </style>
 </head>
 <body>
-  <h1>DICTAMEN PERICIAL PROBATORIO Y EVALUACIÓN BAYESIANA</h1>
+  <h1>DICTAMEN PERICIAL FORENSE Y EVALUACIÓN BAYESIANA</h1>
   <p><strong>TRIBUNAL:</strong> ${tribunal} | <strong>CAUSA:</strong> ${causaNumero}</p>
   <p><strong>PERITO:</strong> ${peritoNombre} | <strong>FECHA:</strong> ${new Date().toLocaleDateString("es-ES")}</p>
   <pre style="white-space: pre-wrap; font-family: inherit;">${text}</pre>
@@ -315,9 +250,9 @@ export const JudicialReportModal: React.FC<JudicialReportModalProps> = ({
               I. Resumen Fáctico y Objeto de la Controversia
             </h2>
             <p className="text-justify text-slate-700 leading-relaxed mb-3">
-              {analysis.resumen_caso.resumen_ejecutivo}
+              {analysis.resumen_caso?.resumen_ejecutivo || "Auditoría probatoria de los documentos aportados."}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans bg-slate-50 p-3 rounded border border-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans bg-slate-50 p-3 rounded border border-slate-200 mb-3">
               <div>
                 <span className="text-slate-500 block">Periodo Controversial Documentado:</span>
                 <strong className="text-slate-800">
@@ -331,6 +266,24 @@ export const JudicialReportModal: React.FC<JudicialReportModalProps> = ({
                 </strong>
               </div>
             </div>
+
+            {/* Partes Identificadas */}
+            {Array.isArray(analysis.resumen_caso?.partes_identificadas) && analysis.resumen_caso.partes_identificadas.length > 0 && (
+              <div className="mt-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block mb-1.5 font-sans">
+                  Partes e Intervinientes Identificados:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-sans">
+                  {analysis.resumen_caso.partes_identificadas.map((p, idx) => (
+                    <div key={idx} className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                      <div className="font-bold text-slate-900">{p.nombre}</div>
+                      <div className="text-[11px] text-blue-700 font-medium">{p.rol}</div>
+                      <div className="text-[11px] text-slate-600 mt-0.5">{p.detalles}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Section 2: Bayesian Probabilistic Modeling */}
@@ -508,29 +461,40 @@ export const JudicialReportModal: React.FC<JudicialReportModalProps> = ({
             </div>
           </div>
 
-          {/* Section 4: Evidentiary Gaps */}
-          {Array.isArray(analysis.vacios_probatorios) && analysis.vacios_probatorios.length > 0 && (
+          {/* Section 4: Contradicciones Detectadas */}
+          {Array.isArray(analysis.contradicciones) && analysis.contradicciones.length > 0 && (
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-1 mb-3 font-sans">
-                IV. Dictamen sobre Vacíos Probatorios y Silencio Procesal
+                IV. Contradicciones e Inconsistencias Fácticas Detectadas
               </h2>
               <div className="space-y-3 font-sans text-xs">
-                {analysis.vacios_probatorios.map((gap, idx) => (
-                  <div key={gap.id || `gap-${idx}`} className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg">
-                    <div className="flex justify-between font-bold text-amber-950 mb-1">
-                      <span>[{gap.id}] {gap.descripcion}</span>
-                      <span className="text-[11px] px-2 py-0.5 bg-amber-200 text-amber-900 rounded">
-                        Prioridad {gap.prioridad}
+                {analysis.contradicciones.map((c, idx) => (
+                  <div key={c.id || `contra-${idx}`} className="p-3.5 bg-rose-50/70 border border-rose-200 rounded-lg">
+                    <div className="flex justify-between items-center font-bold text-rose-950 mb-2">
+                      <span>[{c.id || `C-${idx + 1}`}] {c.titulo}</span>
+                      <span className="text-[10px] px-2 py-0.5 bg-rose-200 text-rose-900 rounded font-bold">
+                        Gravedad {c.nivel_gravedad || "Crítica"}
                       </span>
                     </div>
-                    <p className="text-amber-900 text-[11px] mb-1">
-                      <strong>Periodo Afectado:</strong> {gap.hecho_o_periodo_afectado}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] mb-2">
+                      <div className="bg-white/80 p-2 rounded border border-rose-100">
+                        <strong className="text-slate-800 block mb-0.5">
+                          Versión A ({c.hecho_a?.autor_o_parte || "Parte A"} · {c.hecho_a?.fuente || "Fuente A"}):
+                        </strong>
+                        <span className="italic text-slate-700">"{c.hecho_a?.declaracion}"</span>
+                      </div>
+                      <div className="bg-white/80 p-2 rounded border border-rose-100">
+                        <strong className="text-slate-800 block mb-0.5">
+                          Versión B ({c.hecho_b?.autor_o_parte || "Parte B"} · {c.hecho_b?.fuente || "Fuente B"}):
+                        </strong>
+                        <span className="italic text-slate-700">"{c.hecho_b?.declaracion}"</span>
+                      </div>
+                    </div>
+                    <p className="text-rose-950 text-[11px] mb-1">
+                      <strong>Discrepancia Pericial:</strong> {c.explicacion_discrepancia}
                     </p>
-                    <p className="text-amber-800 text-[11px] mb-1">
-                      <strong>Riesgo Procesal:</strong> {gap.riesgo_procesal}
-                    </p>
-                    <p className="text-amber-900 text-[11px] font-semibold">
-                      <strong>Diligencia Sugerida:</strong> {gap.diligencia_o_prueba_sugerida}
+                    <p className="text-rose-900 text-[11px] font-semibold">
+                      <strong>Impacto Procesal:</strong> {c.impacto_procesal}
                     </p>
                   </div>
                 ))}
@@ -538,10 +502,59 @@ export const JudicialReportModal: React.FC<JudicialReportModalProps> = ({
             </div>
           )}
 
-          {/* Section 5: Cryptographic Chain of Custody (SHA-256) */}
+          {/* Section 5: Evidentiary Gaps */}
+          {Array.isArray(analysis.vacios_probatorios) && analysis.vacios_probatorios.length > 0 && (
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-1 mb-3 font-sans">
+                V. Dictamen sobre Vacíos Probatorios y Silencio Procesal
+              </h2>
+              <div className="space-y-3 font-sans text-xs">
+                {analysis.vacios_probatorios.map((gap, idx) => (
+                  <div key={gap.id || `gap-${idx}`} className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg">
+                    <div className="flex justify-between font-bold text-amber-950 mb-1">
+                      <span>[{gap.id || `V-${idx + 1}`}] {gap.descripcion}</span>
+                      <span className="text-[11px] px-2 py-0.5 bg-amber-200 text-amber-900 rounded font-bold">
+                        Prioridad {gap.prioridad || "Alta"}
+                      </span>
+                    </div>
+                    <p className="text-amber-900 text-[11px] mb-1">
+                      <strong>Periodo Afectado:</strong> {gap.hecho_o_periodo_afectado || "Periodo en litigio"}
+                    </p>
+                    <p className="text-amber-800 text-[11px] mb-1">
+                      <strong>Riesgo Procesal:</strong> {gap.riesgo_procesal || "Riesgo de duda probatoria"}
+                    </p>
+                    <p className="text-amber-900 text-[11px] font-semibold">
+                      <strong>Diligencia Sugerida:</strong> {gap.diligencia_o_prueba_sugerida || "Solicitar informe pericial o documental complementario"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Section 6: Legal & Procedural Recommendations */}
+          {Array.isArray(analysis.recomendaciones_legales) && analysis.recomendaciones_legales.length > 0 && (
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-1 mb-3 font-sans">
+                VI. Recomendaciones de Estrategia Procesal para el Litigio
+              </h2>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs font-sans space-y-2">
+                {analysis.recomendaciones_legales.map((rec, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">
+                      {idx + 1}
+                    </span>
+                    <p className="text-slate-800 leading-relaxed">{rec}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Section 7: Cryptographic Chain of Custody (SHA-256) */}
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-1 mb-3 font-sans">
-              V. Fijación Criptográfica y Cadena de Custodia (SHA-256)
+              VII. Fijación Criptográfica y Cadena de Custodia (SHA-256)
             </h2>
             <p className="text-xs font-sans text-slate-600 mb-2">
               Huellas digitales generadas conforme al estándar <strong>ISO/IEC 27037 / FIPS PUB 180-4</strong> para garantizar que el archivo aportado es idéntico al incorporado en autos.

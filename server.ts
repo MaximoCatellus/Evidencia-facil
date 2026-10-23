@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { processForensicEvidence } from "./src/lib/geminiAnalyzer.ts";
-import { generateTailoredAnalysis, EvidenceFilePayload, AnalyzeRequestBody } from "./src/lib/tailoredAnalysis.ts";
+import { generateTailoredAnalysis, normalizeAnalysisResult, type EvidenceFilePayload, type AnalyzeRequestBody } from "./src/lib/tailoredAnalysis.ts";
 
 dotenv.config();
 
@@ -32,7 +32,7 @@ app.post("/api/analyze", async (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (useDemoFallback || !apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey.trim() === "") {
-      const sample = generateTailoredAnalysis(files, caseContext);
+      const sample = normalizeAnalysisResult(generateTailoredAnalysis(files, caseContext), files);
       return res.json({
         success: true,
         isDemo: true,
@@ -112,8 +112,10 @@ app.get("/api/health", (req, res) => {
 
 // Configure Vite integration for dev server or static serving in production
 async function startServer() {
-  const isCloudRun = process.env.K_SERVICE !== undefined || process.env.K_REVISION !== undefined;
-  const isProduction = process.env.NODE_ENV === "production" || isCloudRun;
+  const isCloudRun = process.env.K_SERVICE !== undefined || process.env.K_REVISION !== undefined || process.env.PORT === "8080";
+  const isStartScript = process.env.npm_lifecycle_event === "start";
+  const hasBuildDir = fs.existsSync(path.resolve(__dirname, "dist")) || fs.existsSync(path.resolve(__dirname, "build"));
+  const isProduction = process.env.NODE_ENV === "production" || isCloudRun || isStartScript || (hasBuildDir && process.env.NODE_ENV !== "development");
 
   if (!isProduction) {
     const { createServer } = await import("vite");
