@@ -8,6 +8,7 @@
     }
   },
   "rewrites": [
+    { "source": "/api/clean-expediente/chunk", "destination": "/api/clean-expediente" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]

@@ -1,0 +1,6 @@
+{
+  "summary":  "Plan de arquitectura e implementación del Módulo de Preparación y Triaje de Tomos Judiciales Masivos (>50MB) integrado en EvidenciaFácil, con soporte para Gemini File API, indexación de folios, filtrado de fojas irrelevantes y chunking semántico.",
+  "updatedAt":  "2026-10-23T23:07:25.449208768Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

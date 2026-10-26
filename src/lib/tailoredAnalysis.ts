@@ -293,6 +293,8 @@ export function normalizeAnalysisResult(raw: any, files: EvidenceFilePayload[] =
 
   // 1. Normalizar resumen del caso
   const tituloCaso =
+    raw.expediente ||
+    rawResumen.expediente ||
     rawResumen.titulo_caso ||
     rawResumen.titulo ||
     raw.titulo_caso ||
@@ -302,17 +304,31 @@ export function normalizeAnalysisResult(raw: any, files: EvidenceFilePayload[] =
       : "Expediente Digital de E-Discovery");
 
   const resumenEjecutivo =
+    raw.resumen_ejecutivo ||
     rawResumen.resumen_ejecutivo ||
     rawResumen.resumen ||
     rawResumen.sintesis ||
-    raw.resumen_ejecutivo ||
     raw.resumen ||
     "Auditoría forense digital y estructuración de los elementos probatorios incorporados en autos.";
 
   // Normalizar periodo temporal
   let periodoInicio = "Inicio documentado";
   let periodoFin = "Fin documentado";
-  if (typeof rawResumen.periodo_temporal === "object" && rawResumen.periodo_temporal !== null) {
+  if (typeof raw.periodo_documentado === "string" && raw.periodo_documentado.trim()) {
+    const rawPeriodo = raw.periodo_documentado.trim();
+    if (rawPeriodo.includes(" a ")) {
+      const parts = rawPeriodo.split(/\s+a\s+/);
+      periodoInicio = parts[0]?.trim() || periodoInicio;
+      periodoFin = parts[1]?.trim() || periodoFin;
+    } else if (rawPeriodo.includes(" al ")) {
+      const parts = rawPeriodo.split(/\s+al\s+/);
+      periodoInicio = parts[0]?.trim() || periodoInicio;
+      periodoFin = parts[1]?.trim() || periodoFin;
+    } else {
+      periodoInicio = rawPeriodo;
+      periodoFin = rawPeriodo;
+    }
+  } else if (typeof rawResumen.periodo_temporal === "object" && rawResumen.periodo_temporal !== null) {
     periodoInicio = rawResumen.periodo_temporal.inicio || periodoInicio;
     periodoFin = rawResumen.periodo_temporal.fin || periodoFin;
   } else if (typeof rawResumen.periodo === "string" && rawResumen.periodo.includes("a")) {
@@ -322,7 +338,9 @@ export function normalizeAnalysisResult(raw: any, files: EvidenceFilePayload[] =
   }
 
   // Partes identificadas
-  const rawPartes = Array.isArray(rawResumen.partes_identificadas)
+  const rawPartes = Array.isArray(raw.partes_intervinientes)
+    ? raw.partes_intervinientes
+    : Array.isArray(rawResumen.partes_identificadas)
     ? rawResumen.partes_identificadas
     : Array.isArray(raw.partes_identificadas)
     ? raw.partes_identificadas
@@ -330,8 +348,8 @@ export function normalizeAnalysisResult(raw: any, files: EvidenceFilePayload[] =
 
   let partesIdentificadas = rawPartes.map((p: any, idx: number) => ({
     nombre: p.nombre || p.parte || `Interviniente ${idx + 1}`,
-    rol: p.rol || p.cargo || "Parte Procesal",
-    detalles: p.detalles || p.entidad || p.relacion || "Interviniente registrado en los soportes probatorios."
+    rol: p.rol_procesal || p.rol || p.cargo || "Parte Procesal",
+    detalles: p.entidad || p.detalles || p.relacion || "Interviniente registrado en los soportes probatorios."
   }));
 
   if (partesIdentificadas.length === 0) {
@@ -350,12 +368,16 @@ export function normalizeAnalysisResult(raw: any, files: EvidenceFilePayload[] =
   }
 
   // 2. Normalizar cronología
-  const rawCronologia = Array.isArray(raw.cronologia) ? raw.cronologia : [];
+  const rawCronologia = Array.isArray(raw.cronologia_hitos)
+    ? raw.cronologia_hitos
+    : Array.isArray(raw.cronologia)
+    ? raw.cronologia
+    : [];
   const cronologia: TimelineEvent[] = rawCronologia.map((ev: any, idx: number) => {
-    const id = ev.id || ev.codigo || `H-${String(idx + 1).padStart(3, "0")}`;
+    const id = ev.id_hito || ev.id || ev.codigo || `H-${String(idx + 1).padStart(3, "0")}`;
     const fechaHora =
-      ev.fecha_hora ||
       ev.fecha ||
+      ev.fecha_hora ||
       ev.fechaNormalizada ||
       ev.fecha_normalizada ||
       ev.fecha_iso ||
@@ -363,8 +385,9 @@ export function normalizeAnalysisResult(raw: any, files: EvidenceFilePayload[] =
       ev.date ||
       "Fecha documentada";
 
-    const hecho = ev.hecho || ev.descripcion || ev.evento || "Acontecimiento procesal registrado.";
+    const hecho = ev.hecho_objetivo || ev.hecho || ev.descripcion || ev.evento || "Acontecimiento procesal registrado.";
     const fuente =
+      ev.fuente_foja ||
       ev.fuente_documental ||
       ev.fuente ||
       ev.documento ||
@@ -372,6 +395,7 @@ export function normalizeAnalysisResult(raw: any, files: EvidenceFilePayload[] =
       defaultFileName;
 
     const cita =
+      ev.cita_literal ||
       ev.cita_o_referencia ||
       ev.cita ||
       ev.cita_textual ||
@@ -421,21 +445,30 @@ export function normalizeAnalysisResult(raw: any, files: EvidenceFilePayload[] =
   }
 
   // 3. Normalizar contradicciones
-  const rawContradicciones = Array.isArray(raw.contradicciones) ? raw.contradicciones : [];
+  const rawContradicciones = Array.isArray(raw.matriz_contradicciones)
+    ? raw.matriz_contradicciones
+    : Array.isArray(raw.contradicciones)
+    ? raw.contradicciones
+    : [];
   const contradicciones: Contradiction[] = rawContradicciones.map((c: any, idx: number) => {
-    const id = c.id || `C-${String(idx + 1).padStart(3, "0")}`;
-    const titulo = c.titulo || `Inconsistencia Probatoria ${idx + 1}`;
+    const id = c.id_conflicto || c.id || `C-${String(idx + 1).padStart(3, "0")}`;
+    const titulo = c.tema || c.titulo || `Inconsistencia Probatoria ${idx + 1}`;
     const hechoA = {
-      declaracion: c.hecho_a?.declaracion || c.hecho_a?.afirmacion || "Manifestación o registro inicial.",
+      declaracion:
+        (typeof c.version_a === "string" ? c.version_a : c.hecho_a?.declaracion || c.hecho_a?.afirmacion) ||
+        "Manifestación o registro inicial.",
       fuente: c.hecho_a?.fuente || defaultFileName,
       autor_o_parte: c.hecho_a?.autor_o_parte || c.hecho_a?.autor || partesIdentificadas[0]?.nombre || "Parte A"
     };
     const hechoB = {
-      declaracion: c.hecho_b?.declaracion || c.hecho_b?.afirmacion || "Manifestación o registro contradictorio.",
+      declaracion:
+        (typeof c.version_b === "string" ? c.version_b : c.hecho_b?.declaracion || c.hecho_b?.afirmacion) ||
+        "Manifestación o registro contradictorio.",
       fuente: c.hecho_b?.fuente || defaultFileName,
       autor_o_parte: c.hecho_b?.autor_o_parte || c.hecho_b?.autor || partesIdentificadas[1]?.nombre || "Parte B"
     };
     const explicacion =
+      c.discrepancia_factica ||
       c.explicacion_discrepancia ||
       c.explicacion ||
       c.discrepancia ||
@@ -463,16 +496,17 @@ export function normalizeAnalysisResult(raw: any, files: EvidenceFilePayload[] =
     };
   });
 
-  // 4. Normalizar vacíos probatorios
+  // 4. Normalizar vacíos probatorios y silencios procesales
   const rawVacios = Array.isArray(raw.vacios_probatorios) ? raw.vacios_probatorios : [];
   const vacios_probatorios: EvidentiaryGap[] = rawVacios.map((g: any, idx: number) => {
-    const id = g.id || `V-${String(idx + 1).padStart(3, "0")}`;
+    const id = g.id_vacio || g.id || `V-${String(idx + 1).padStart(3, "0")}`;
     const descripcion =
       g.descripcion ||
       g.vacio ||
       g.descripcion_vacio ||
       "Laguna probatoria o periodo carente de acreditación documental.";
     const hechoPeriodo =
+      g.periodo_afectado ||
       g.hecho_o_periodo_afectado ||
       g.periodoAfectado ||
       g.periodo ||
@@ -484,6 +518,7 @@ export function normalizeAnalysisResult(raw: any, files: EvidenceFilePayload[] =
       g.riesgo ||
       "Riesgo de desestimación por insuficiencia probatoria.";
     const diligencia =
+      g.diligencia_sugerida ||
       g.diligencia_o_prueba_sugerida ||
       g.diligenciaSugerida ||
       g.diligencia ||
@@ -506,6 +541,21 @@ export function normalizeAnalysisResult(raw: any, files: EvidenceFilePayload[] =
       prioridad
     };
   });
+
+  // Incorporar silencios procesales como alertas probatorias si vienen en el JSON
+  if (Array.isArray(raw.silencios_procesales)) {
+    raw.silencios_procesales.forEach((s: any, idx: number) => {
+      const dias = typeof s.dias_inactividad === "number" ? s.dias_inactividad : 30;
+      vacios_probatorios.push({
+        id: `SIL-${String(idx + 1).padStart(3, "0")}`,
+        descripcion: `Silencio procesal prolongado (${dias} días sin actuaciones): ${s.laguna_procesal || "Inactividad documental prolongada."}`,
+        hecho_o_periodo_afectado: s.rango_fechas || "Periodo de inactividad",
+        riesgo_procesal: "Riesgo de caducidad, prescripción o pérdida de eficacia de la prueba.",
+        diligencia_o_prueba_sugerida: "Comprobar notificaciones pendientes o solicitar impulso procesal de oficio.",
+        prioridad: dias >= 60 ? "Alta" : "Media"
+      });
+    });
+  }
 
   // 5. Normalizar red bayesiana
   const rawRed = raw.red_bayesiana;
@@ -570,8 +620,8 @@ export function normalizeAnalysisResult(raw: any, files: EvidenceFilePayload[] =
     tesis_probatoria: rawRed?.tesis_probatoria || "La articulación convergente de los medios probatorios aporta convicción judicial fundada."
   };
 
-  // 6. Recomendaciones legales
-  let recs = raw.recomendaciones_legales;
+  // 6. Recomendaciones legales y estratégicas
+  let recs = raw.recomendaciones_estrategicas || raw.recomendaciones_legales;
   if (!Array.isArray(recs)) {
     recs = typeof recs === "string"
       ? recs.split(/\r?\n/).map((s: string) => s.trim().replace(/^[-*•\d.]+\s*/, "")).filter(Boolean)

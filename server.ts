@@ -2,9 +2,14 @@ import express from "express";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
+import os from "os";
+import multer from "multer";
 import { fileURLToPath } from "url";
+import { GoogleGenAI } from "@google/genai";
+import { SYSTEM_INSTRUCTION_FORENSIC, FORENSIC_JSON_SCHEMA } from "./lib/prompts/forensicPrompt.ts";
 import { processForensicEvidence } from "./src/lib/geminiAnalyzer.ts";
 import { generateTailoredAnalysis, normalizeAnalysisResult, type EvidenceFilePayload, type AnalyzeRequestBody } from "./src/lib/tailoredAnalysis.ts";
+import { processLargeDossier } from "./src/lib/expedienteCleaner.ts";
 
 dotenv.config();
 
@@ -14,13 +19,181 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
+// Multer upload config for large PDF judicial dossiers (>50MB up to 250MB)
+const upload = multer({
+  dest: os.tmpdir(),
+  limits: { fileSize: 250 * 1024 * 1024 }
+});
+
 // Set payload limit to handle base64 images, PDFs, and legal evidence bundles
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
+// POST /api/clean-expediente (Pipeline de Filtrado con Gemini File API)
+app.post("/api/clean-expediente", upload.single("file"), async (req, res) => {
+  let tempPath: string | null = null;
+  try {
+    const caseNotes = (req.body?.caseNotes as string) || "";
+
+    if (!req.file) {
+      return res.status(400).json({
+        error: "No se proporcionó ningún archivo de expediente."
+      });
+    }
+
+    const targetFilePath = req.file.path;
+    tempPath = req.file.path;
+    const targetFileName = req.file.originalname;
+    const targetFileSizeMb = req.file.size / (1024 * 1024);
+
+    console.log(`[POST /api/clean-expediente] Procesando ${targetFileName} (${targetFileSizeMb.toFixed(1)} MB)...`);
+    const result = await processLargeDossier(targetFilePath, targetFileName, targetFileSizeMb, caseNotes);
+
+    return res.json({
+      success: true,
+      originalFileName: targetFileName,
+      originalSizeBytes: Math.round(targetFileSizeMb * 1024 * 1024),
+      purifiedData: result
+    });
+  } catch (error: any) {
+    console.error("Error en /api/clean-expediente:", error);
+    return res.status(500).json({
+      error: error?.message || "Error al procesar el expediente voluminoso."
+    });
+  } finally {
+    if (tempPath && fs.existsSync(tempPath)) {
+      try {
+        await fs.promises.unlink(tempPath);
+      } catch (e) {
+        console.warn("No se pudo eliminar archivo temporal:", e);
+      }
+    }
+  }
+});
+
+// POST /api/clean-expediente/chunk (Subida por fragmentos de 3.5MB para esquivar el límite 413 de Cloud Run y Vercel)
+app.post("/api/clean-expediente/chunk", upload.single("chunk"), async (req, res) => {
+  let assembledFilePath: string | null = null;
+  try {
+    const uploadId = (req.body?.uploadId as string) || "default";
+    const chunkIndex = parseInt(req.body?.chunkIndex, 10);
+    const totalChunks = parseInt(req.body?.totalChunks, 10);
+    const fileName = (req.body?.fileName as string) || "expediente.pdf";
+    const caseNotes = (req.body?.caseNotes as string) || "";
+
+    if (!req.file) {
+      return res.status(400).json({ error: "No se recibió el fragmento de archivo." });
+    }
+
+    const safeUploadId = uploadId.replace(/[^a-zA-Z0-9_-]/g, "");
+    const tempAssemblyPath = path.join(os.tmpdir(), `assembled_${safeUploadId}.pdf`);
+
+    // Si es el primer fragmento, sobreescribir o inicializar el archivo ensamblado
+    const chunkBuffer = await fs.promises.readFile(req.file.path);
+    if (chunkIndex === 0) {
+      await fs.promises.writeFile(tempAssemblyPath, chunkBuffer);
+    } else {
+      await fs.promises.appendFile(tempAssemblyPath, chunkBuffer);
+    }
+
+    // Limpiar el archivo temporal del chunk recibido
+    try {
+      await fs.promises.unlink(req.file.path);
+    } catch {}
+
+    // Si todavía no es el último fragmento, confirmar recepción exitosa
+    if (chunkIndex < totalChunks - 1) {
+      return res.json({
+        success: true,
+        isComplete: false,
+        chunkIndex,
+        totalChunks,
+        message: `Fragmento ${chunkIndex + 1} de ${totalChunks} recibido y ensamblado.`
+      });
+    }
+
+    // ¡Es el último fragmento! El archivo completo de 97+ MB está 100% ensamblado en tempAssemblyPath
+    assembledFilePath = tempAssemblyPath;
+    const stats = await fs.promises.stat(tempAssemblyPath);
+    const assembledSizeMb = stats.size / (1024 * 1024);
+
+    console.log(`[Chunked Upload] Archivo ensamblado con éxito: ${fileName} (${assembledSizeMb.toFixed(1)} MB en ${totalChunks} fragmentos).`);
+    console.log(`[Chunked Upload] Iniciando procesamiento con Gemini File API...`);
+
+    const result = await processLargeDossier(assembledFilePath, fileName, assembledSizeMb, caseNotes);
+
+    return res.json({
+      success: true,
+      isComplete: true,
+      originalFileName: fileName,
+      originalSizeBytes: stats.size,
+      purifiedData: result
+    });
+  } catch (error: any) {
+    console.error("Error en /api/clean-expediente/chunk:", error);
+    return res.status(500).json({
+      error: error?.message || "Error procesando fragmento del expediente."
+    });
+  } finally {
+    if (assembledFilePath && fs.existsSync(assembledFilePath)) {
+      try {
+        await fs.promises.unlink(assembledFilePath);
+      } catch (e) {
+        console.warn("No se pudo eliminar archivo ensamblado temporal:", e);
+      }
+    }
+  }
+});
+
 // POST /api/analyze
 app.post("/api/analyze", async (req, res) => {
   try {
+    const customTemp = 0.1;
+    const requestedModel = req.body?.model || "gemini-2.5-flash";
+
+    // 1. Si se envía documentText para auditoría forense documental estricta
+    if (req.body?.documentText) {
+      const documentText = req.body.documentText;
+      const apiKey = process.env.GEMINI_API_KEY || "";
+
+      if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey.trim() === "") {
+        return res.status(400).json({
+          error: "GEMINI_API_KEY no configurada en el servidor."
+        });
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      const candidateModels = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest", "gemini-1.5-pro"];
+      let responseText = "";
+
+      for (const modelName of candidateModels) {
+        try {
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: `Analiza y audita con rigor forense 1:1 el siguiente expediente documental:\n\n${documentText}` }]
+              }
+            ],
+            config: {
+              systemInstruction: SYSTEM_INSTRUCTION_FORENSIC,
+              responseMimeType: "application/json",
+              responseSchema: FORENSIC_JSON_SCHEMA as any,
+              temperature: 0.1
+            }
+          });
+          responseText = response.text ?? "{}";
+          if (responseText.trim() && responseText.trim() !== "{}") break;
+        } catch (modelErr: any) {
+          console.warn(`[server.ts /api/analyze] Advertencia con modelo ${modelName}:`, modelErr?.message || modelErr);
+        }
+      }
+
+      const forensicData = JSON.parse(responseText);
+      return res.json({ success: true, data: forensicData });
+    }
+
     const { files = [], caseContext = "", useDemoFallback = false }: AnalyzeRequestBody = req.body;
 
     if (!Array.isArray(files) || files.length === 0) {
@@ -41,7 +214,10 @@ app.post("/api/analyze", async (req, res) => {
       });
     }
 
-    const result = await processForensicEvidence(files, caseContext, apiKey, useDemoFallback);
+    const result = await processForensicEvidence(files, caseContext, apiKey, useDemoFallback, {
+      temperature: 0.1,
+      preferredModel: requestedModel
+    });
     return res.json(result);
   } catch (err: any) {
     console.error("Error en /api/analyze:", err);
@@ -108,6 +284,26 @@ app.get("/api/health", (req, res) => {
     appName: "Democratizador de E-Discovery (EvidenciaFácil)",
     hasGeminiKey: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY")
   });
+});
+
+// Explicit fallback for ANY unmatched /api/* route to ALWAYS return JSON 404, NEVER pass to Vite or index.html!
+app.all("/api/*", (req, res) => {
+  console.warn(`[404 API Not Found]: ${req.method} ${req.originalUrl || req.path}`);
+  res.status(404).json({
+    error: `Ruta de API no encontrada: ${req.method} ${req.originalUrl || req.path}`
+  });
+});
+
+// Garantizar que cualquier error en /api/* responda siempre con JSON y nunca con páginas HTML
+app.use((err: any, req: any, res: any, next: any) => {
+  const url = req.originalUrl || req.path || "";
+  if (url.startsWith("/api/")) {
+    console.error(`[API Error in ${url}]:`, err);
+    return res.status(err.status || err.statusCode || 500).json({
+      error: err.message || "Error procesando solicitud en el servidor."
+    });
+  }
+  next(err);
 });
 
 // Configure Vite integration for dev server or static serving in production

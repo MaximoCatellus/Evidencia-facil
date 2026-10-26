@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { type EvidenceFilePayload, sanitizePromptInput, generateTailoredAnalysis, normalizeAnalysisResult } from "./tailoredAnalysis.ts";
+import { SYSTEM_INSTRUCTION_FORENSIC, FORENSIC_JSON_SCHEMA } from "../../lib/prompts/forensicPrompt.ts";
 
 export const analysisResponseSchema = {
   type: Type.OBJECT,
@@ -155,11 +156,17 @@ export const analysisResponseSchema = {
   required: ["resumen_caso", "cronologia", "contradicciones", "vacios_probatorios", "red_bayesiana", "recomendaciones_legales", "metadata_analisis"]
 };
 
+export interface ForensicProcessOptions {
+  temperature?: number;
+  preferredModel?: string;
+}
+
 export async function processForensicEvidence(
   files: EvidenceFilePayload[],
   caseContext: string = "",
   apiKey?: string,
-  useDemoFallback: boolean = false
+  useDemoFallback: boolean = false,
+  options?: ForensicProcessOptions
 ) {
   if (!Array.isArray(files) || files.length === 0) {
     throw new Error("Se requiere al menos un archivo de evidencia (imagen de chat, documento, correo o contrato).");
@@ -271,23 +278,24 @@ Debes responder ÚNICAMENTE con un objeto JSON válido (sin bloques de código m
     }
   }
 
-  const candidateModels = ["gemini-3.1-flash-lite", "gemini-3.8-flash"];
+  const targetTemperature = 0.1;
+  const candidateModels = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest", "gemini-1.5-pro"];
   let structuredData: any = null;
 
   for (const modelName of candidateModels) {
-    const maxRetries = modelName === "gemini-3.1-flash-lite" ? 3 : 2;
+    const maxRetries = 2;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`[EvidenciaFácil] Analizando con ${modelName} (intento ${attempt}/${maxRetries})...`);
+        console.log(`[EvidenciaFácil] Analizando con ${modelName} (temp: ${targetTemperature}, intento ${attempt}/${maxRetries})...`);
         const response = await ai.models.generateContent({
           model: modelName,
           contents: {
             parts: parts
           },
           config: {
-            systemInstruction: systemInstructionForense,
+            systemInstruction: SYSTEM_INSTRUCTION_FORENSIC,
             responseMimeType: "application/json",
-            responseSchema: analysisResponseSchema,
+            responseSchema: FORENSIC_JSON_SCHEMA as any,
             temperature: 0.1
           }
         });

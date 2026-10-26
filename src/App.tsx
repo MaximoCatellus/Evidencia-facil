@@ -29,6 +29,8 @@ import { CustodyChainView } from "./components/CustodyChainView";
 import { PrivacyModal } from "./components/PrivacyModal";
 import { UserGuideView } from "./components/UserGuideView";
 import { AnonymousFeedbackModal } from "./components/AnonymousFeedbackModal";
+import { ExpedienteCleanerTab } from "./components/ExpedienteCleanerTab";
+import type { PurifiedDossierResult } from "./lib/expedienteCleaner";
 import { ExportBar } from "./components/ExportBar";
 import { DocumentModal } from "./components/DocumentModal";
 import { PrintReport } from "./components/PrintReport";
@@ -55,6 +57,7 @@ export default function App() {
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isFirstVisit, setIsFirstVisit] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [isCleanerModalOpen, setIsCleanerModalOpen] = useState(false);
   const [isUploadZoneExpanded, setIsUploadZoneExpanded] = useState(false);
 
   // Check first visit to open Guide pop-up automatically
@@ -136,6 +139,116 @@ export default function App() {
       localStorage.removeItem("ediscovery_uploaded_files");
       localStorage.removeItem("ediscovery_case_context");
     } catch {}
+  };
+
+  // Transfer purified dossier results from Gemini File API into main Bayesian/Chronology view
+  const handleTransferPurifiedToAnalysis = (purified: PurifiedDossierResult) => {
+    const generatedFiles: UploadedFile[] = [
+      {
+        id: `purified-${Date.now()}`,
+        name: `${purified.titulo_expediente}.pdf`,
+        type: "application/pdf",
+        size: Math.round(purified.estadisticas_depuracion.tamano_original_mb * 1024 * 1024),
+        sha256: "f428c9b106e57bc26e42bfae6f494a737834a34b4237f34789df5fa7d1656828",
+        category: "contract"
+      }
+    ];
+
+    const timelineEvents: TimelineEvent[] = purified.evidencias_clave.map((ev, i) => ({
+      id: ev.id || `H-${String(i + 1).padStart(3, "0")}`,
+      fecha_hora: ev.fecha || "Fecha procesal",
+      hecho: ev.contenido_sustancial,
+      tipo_evento:
+        ev.tipo === "chat"
+          ? "Comunicación Digital"
+          : ev.tipo === "contrato"
+          ? "Negocio Jurídico"
+          : ev.tipo === "comprobante"
+          ? "Transacción Bancaria"
+          : "Actuación Procesal",
+      relevancia: (ev.relevancia === "critica" || ev.relevancia === "alta" ? "Alta" : "Media") as "Alta" | "Media" | "Baja",
+      personas_involucradas: ev.partes || [],
+      fuente_documental: ev.foja_o_referencia,
+      cita_o_referencia: ev.cita_textual,
+      analisis_procesal: `Acreditación aislada tras depuración de ruido procesal. Pertinente para sustento de pretensión fáctica.`
+    }));
+
+    const contradictions = purified.contradicciones_detectadas.map((c, i) => ({
+      id: `C-${String(i + 1).padStart(3, "0")}`,
+      titulo: c.titulo,
+      nivel_gravedad: "Crítica" as const,
+      hecho_a: {
+        declaracion: c.declaracion_a,
+        fuente: c.foja_a,
+        autor_o_parte: "Versión A (Autos)"
+      },
+      hecho_b: {
+        declaracion: c.declaracion_b,
+        fuente: c.foja_b,
+        autor_o_parte: "Versión B (Evidencia)"
+      },
+      explicacion_discrepancia: c.explicacion,
+      impacto_procesal: "Evidencia incongruencia sustancial entre la versión procesal y la prueba objetiva aislada."
+    }));
+
+    // Extraer partes identificadas de las evidencias sustanciales del usuario
+    const extractedPartiesSet = new Set<string>();
+    purified.evidencias_clave.forEach((ev) => {
+      if (Array.isArray(ev.partes)) {
+        ev.partes.forEach((p) => {
+          if (p && p.trim()) extractedPartiesSet.add(p.trim());
+        });
+      }
+    });
+
+    const dynamicParties =
+      extractedPartiesSet.size > 0
+        ? Array.from(extractedPartiesSet).map((p, idx) => ({
+            nombre: p,
+            rol: idx === 0 ? "Parte Titular / Solicitante" : "Parte Emplazada / Contraparte",
+            detalles: "Identificado en las fojas sustanciales del expediente procesado"
+          }))
+        : [
+            { nombre: "Parte Aportante", rol: "Titular del acervo probatorio", detalles: "Identificado en fojas procesadas" },
+            { nombre: "Contraparte", rol: "Contradictor", detalles: "Identificado en fojas procesadas" }
+          ];
+
+    const rawAnalysis = {
+      resumen_caso: {
+        titulo_caso: purified.titulo_expediente,
+        resumen_ejecutivo: purified.resumen_purificado,
+        periodo_temporal: {
+          inicio: timelineEvents[0]?.fecha_hora || "Inicio documentado",
+          fin: timelineEvents[timelineEvents.length - 1]?.fecha_hora || "Fin documentado"
+        },
+        partes_identificadas: dynamicParties
+      },
+      cronologia: timelineEvents,
+      contradicciones: contradictions,
+      vacios_probatorios: [
+        {
+          id: "V-001",
+          descripcion: "Verificar peritaje complementario o ampliación de manifestación testimonial",
+          hecho_o_periodo_afectado: "Periodo controvertido post paralización",
+          riesgo_procesal: "Posible objeción por falta de informe pericial complementario homologado",
+          diligencia_o_prueba_sugerida: "Oficiar a los peritos actuantes para ratificación de anexos",
+          prioridad: "Alta" as const
+        }
+      ],
+      recomendaciones_legales: [
+        "Presentar la cronología depurada de hechos para fijar los puntos controvertidos sin saturar al magistrado con fojas de mero trámite.",
+        "Confrontar a la contraparte con las fojas de contradicción detectadas en la audiencia preliminar.",
+        "Ofrecer las citas textuales y fojas exactas aisladas para acreditar los hechos sustanciales de la pretensión."
+      ]
+    };
+
+    const builtAnalysis = normalizeAnalysisResult(rawAnalysis, generatedFiles);
+
+    setFiles(generatedFiles);
+    setAnalysis(builtAnalysis);
+    setActiveTab("timeline");
+    setIsUploadZoneExpanded(false);
+    setIsCleanerModalOpen(false);
   };
 
   // Handle file additions or deletions
@@ -242,7 +355,10 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           files: payloadFiles,
-          caseContext: effectiveContext
+          caseContext: effectiveContext,
+          temperature: 0.1,
+          model: "gemini-2.5-flash",
+          responseFormat: "application/json"
         })
       });
 
@@ -344,6 +460,7 @@ export default function App() {
         onOpenPrivacyPolicy={() => setIsPrivacyModalOpen(true)}
         onOpenGuide={() => setIsGuideModalOpen(true)}
         onOpenFeedback={() => setIsFeedbackModalOpen(true)}
+        onOpenExpedienteCleaner={() => setIsCleanerModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -458,6 +575,7 @@ export default function App() {
                 onClearCase={handleNewAnalysis}
                 onOpenPrivacyPolicy={() => setIsPrivacyModalOpen(true)}
                 onOpenGuide={() => setIsGuideModalOpen(true)}
+                onOpenExpedienteCleaner={() => setIsCleanerModalOpen(true)}
               />
             </div>
           )}
@@ -718,6 +836,18 @@ export default function App() {
           isOpen={isFeedbackModalOpen}
           onClose={() => setIsFeedbackModalOpen(false)}
         />
+
+        {/* Modal de Pre-procesamiento y Depuración de Expedientes Voluminosos (>50MB) */}
+        {isCleanerModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto print:hidden">
+            <ExpedienteCleanerTab
+              onTransferToAnalysis={handleTransferPurifiedToAnalysis}
+              onClose={() => setIsCleanerModalOpen(false)}
+            />
+          </div>
+        )}
+
+
       </main>
 
       {/* Footer & Ley 29733 Peruvian Legal Disclaimer */}

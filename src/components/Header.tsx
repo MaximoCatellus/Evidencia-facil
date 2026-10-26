@@ -9,6 +9,7 @@ interface HeaderProps {
   onOpenPrivacyPolicy?: () => void;
   onOpenGuide?: () => void;
   onOpenFeedback?: () => void;
+  onOpenExpedienteCleaner?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,7 +17,8 @@ export const Header: React.FC<HeaderProps> = ({
   onNewAnalysis,
   onOpenPrivacyPolicy,
   onOpenGuide,
-  onOpenFeedback
+  onOpenFeedback,
+  onOpenExpedienteCleaner
 }) => {
   return (
     <header className="border-b border-slate-200 bg-white/95 backdrop-blur-sm sticky top-0 z-30 print:hidden">
@@ -54,6 +56,17 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
+          {onOpenExpedienteCleaner && (
+            <button
+              type="button"
+              onClick={onOpenExpedienteCleaner}
+              className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-amber-400 hover:bg-amber-300 text-slate-950 transition-colors shadow-2xs inline-flex items-center gap-1.5 cursor-pointer"
+              title="Módulo de Pre-procesamiento y Depuración de Expedientes Voluminosos (>50MB)"
+            >
+              <span>⚡ Depurar Tomos (&gt;50MB)</span>
+            </button>
+          )}
+
           {hasAnalysis && (
             <button
               type="button"
@@ -63,6 +76,8 @@ export const Header: React.FC<HeaderProps> = ({
               <span>+ Nuevo Expediente</span>
             </button>
           )}
+
+
 
           {onOpenGuide && (
             <button

@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   ServerOff,
   EyeOff,
-  BookOpen
+  BookOpen,
+  ArrowRight
 } from "lucide-react";
 import { UploadedFile } from "../types/ediscovery";
 
@@ -31,6 +32,7 @@ interface UploadZoneProps {
   onClearCase?: () => void;
   onOpenPrivacyPolicy?: () => void;
   onOpenGuide?: () => void;
+  onOpenExpedienteCleaner?: () => void;
 }
 
 import { processFileForUpload, validateBatchPayloadSize } from "../lib/fileProcessor";
@@ -46,7 +48,8 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
   activeCaseId,
   onClearCase,
   onOpenPrivacyPolicy,
-  onOpenGuide
+  onOpenGuide,
+  onOpenExpedienteCleaner
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [showTextModal, setShowTextModal] = useState(false);
@@ -334,43 +337,38 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
         </div>
       </div>
 
-      {/* Guided Sample Selector (Aha! Moment en 1 clic) */}
-      <div className="mt-4 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-blue-50/90 via-indigo-50/40 to-slate-50 border border-blue-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl select-none" aria-hidden="true">🚀</span>
-          <div>
-            <span className="text-xs font-bold text-slate-900 block">
-              ¿No tienes archivos a la mano para probar?
-            </span>
-            <span className="text-[11px] text-slate-600">
-              Carga un caso real resuelto en 1 clic y comprueba el resultado al instante:
-            </span>
+
+      {/* Heavy Dossier & Gemini File API Callout */}
+      {onOpenExpedienteCleaner && (
+        <div className="mt-3 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-slate-900 via-slate-850 to-indigo-950 text-white border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+              ⚡
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white block">
+                  ¿Tienes un expediente o tomo judicial pesado (&gt;50MB a 200MB)?
+                </span>
+                <span className="text-[10px] font-mono uppercase bg-amber-400/20 text-amber-300 border border-amber-400/30 px-1.5 py-0.2 rounded font-semibold">
+                  Gemini File API
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-300">
+                Filtra el ruido procesal (cédulas vacías, sellos y proveídos de mero trámite) y extrae únicamente la evidencia sustancial.
+              </span>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
           <button
             type="button"
-            onClick={() => onLoadSample("disputa-contractual")}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+            onClick={onOpenExpedienteCleaner}
+            className="text-xs font-bold px-3.5 py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 transition-all inline-flex items-center gap-1.5 shrink-0 shadow-xs cursor-pointer"
           >
-            <span>Disputa Contrato & Chat</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onLoadSample("caso-laboral")}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition-colors cursor-pointer"
-          >
-            <span>Despido & Horas Extra</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onLoadSample("resolucion-tribunal-fiscal")}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition-colors cursor-pointer"
-          >
-            <span>⚖️ Res. Tribunal Fiscal</span>
+            <span>Abrir Depuración de Tomos</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
-      </div>
+      )}
 
       {/* Manual text snippet button */}
       <div className="mt-3 flex justify-end">
