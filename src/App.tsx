@@ -357,7 +357,7 @@ export default function App() {
           files: payloadFiles,
           caseContext: effectiveContext,
           temperature: 0.1,
-          model: "gemini-2.5-flash",
+          model: "gemini-3.8-flash",
           responseFormat: "application/json"
         })
       });

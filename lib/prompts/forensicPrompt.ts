@@ -35,7 +35,20 @@ B. CONTENIDO DE VALOR RELEVANTE (EXTRAER OBLIGATORIAMENTE):
 4. REGISTRO DE ANOMALÍAS: Si un documento está borroso, ilegible o incompleto, debes registrarlo como un vacío probatorio.
 
 ===============================================================================
-3. ESTRUCTURA ANALÍTICA REQUERIDA (6 SECCIONES CLAVE)
+3. DIRECTIVA ESTRICTA DE ATOMIZACIÓN FÁCTICA (1 SUCESO = 1 HITO)
+===============================================================================
+1. PROHIBIDO MACRO-SINTETIZAR: Queda estrictamente prohibido agrupar múltiples eventos, años o declaraciones en 3 o 4 hitos genéricos (ej. NO crear un solo hito para "Actuación Procesal" o "Negocio Jurídico").
+2. HITO INDEPENDIENTE POR SUCESO: Si una sola foja o pieza contiene varias fechas, declaraciones, exámenes médicos o decisiones judiciales (ej. detención 1987, atestado 1989, absolución 1998, declaración 2021), DEBES generar un objeto 'id_hito' independiente para CADA UNO de ellos (H-001, H-002, H-003 ... H-020+).
+3. CITAS LITERALES 1:1: Cada hito atómico debe llevar su propia cita textual entre comillas y la foja exacta de origen.
+
+===============================================================================
+4. FILTRO DE ANTECEDENTES Y RECAPS (ANTI-DUPLICIDAD HISTÓRICA)
+===============================================================================
+- Si una resolución fiscal, auto judicial o dictamen contiene un apartado de "Antecedentes", "Vistos" o "Hechos Denunciados" que reitera eventos pasados de 1987, 1989 o 1998 ya extraídos en fojas previas, NO generes hitos repetidos.
+- Extrae ÚNICAMENTE las DECISIONES PROCESALES NUEVAS, CITACIONES, DISPOSICIONES O PRUEBAS DE DESCARGO presentadas en el documento actual.
+
+===============================================================================
+5. ESTRUCTURA ANALÍTICA REQUERIDA (6 SECCIONES CLAVE)
 ===============================================================================
 1. RESUMEN EJECUTIVO Y TEORÍA DEL CASO: Síntesis del núcleo de la controversia, pretensiones de las partes y estado procesal actual en 2 o 3 párrafos.
 2. PARTES E INTERVINIENTES IDENTIFICADOS: Lista individualizada de personas naturales, jurídicas y autoridades con su rol procesal exacto y entidad.

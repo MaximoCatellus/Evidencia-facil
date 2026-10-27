@@ -73,6 +73,16 @@ REGLAS DE FILTRADO Y PURIFICACIÓN:
    - Actas de constatación o allanamiento.
    - Fechas exactas, montos dinerarios, nombres completos de las partes y contradicciones flagrantes.
 
+3. REGLA ESTRICTA DE ATOMIZACIÓN Y EXHAUSTIVIDAD (PROHIBIDO LIMITARSE A 3 EVIDENCIAS):
+   - Queda terminantemente PROHIBIDO sintetizar o resumir el expediente en solo 3 o 4 hitos generales de ejemplo.
+   - Si el expediente contiene 10, 15, 20 o más de 30 sucesos fácticos, fechas o decisiones, DEBES extraer la TOTALIDAD de ellos de forma individualizada (EV-001, EV-002, ..., EV-025+).
+   - Genera un objeto independiente en 'evidencias_clave' para CADA declaración, peritaje, contrato, comunicación, comprobante u oficio sustancial.
+   - Extrae TODAS las contradicciones fácticas detectadas (no solo una).
+
+4. FILTRO DE ANTECEDENTES Y RECAPS (ANTI-DUPLICIDAD HISTÓRICA):
+   - Si una resolución fiscal contiene un apartado de "Antecedentes" o "Hechos Denunciados" que reitera eventos pasados de 1987, 1989 o 1998 ya extraídos, NO generes hitos repetidos.
+   - Extrae ÚNICAMENTE las DECISIONES PROCESALES NUEVAS, CITACIONES, DISPOSICIONES O PRUEBAS DE DESCARGO presentadas en el documento actual.
+
 Debes responder ÚNICAMENTE un objeto JSON válido con la siguiente estructura:
 {
   "titulo_expediente": string,
@@ -106,9 +116,9 @@ Debes responder ÚNICAMENTE un objeto JSON válido con la siguiente estructura:
   }
 }`;
 
-    const promptText = `Procesa y depura este expediente judicial completo.
+    const promptText = `Procesa y audita este expediente judicial completo con rigor forense 1:1.
 Notas adicionales del caso aportadas por el usuario: ${caseNotes || "Sin notas adicionales."}
-Extrae únicamente la evidencia sustancial en el formato JSON estipulado.`;
+REGLA CLAVE DE ATOMIZACIÓN: Extrae de forma exhaustiva TODAS las evidencias sustanciales sin abreviar ni omitir actuaciones (extrae todos los hitos y genera un objeto para cada suceso, nunca un resumen de solo 3 evidencias). Responde en el formato JSON estipulado.`;
 
     const activeUri = fileInfo?.uri || uploadedFileResult?.uri || "";
     const filePart: any = activeUri
@@ -120,33 +130,52 @@ Extrae únicamente la evidencia sustancial en el formato JSON estipulado.`;
         }
       : fileInfo || uploadedFileResult;
 
-    const candidateModels = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest", "gemini-1.5-pro"];
+    const candidateModels = [
+      "gemini-3.8-flash",
+      "gemini-3.7-flash",
+      "gemini-3.6-flash",
+      "gemini-3.5-flash",
+      "gemini-flash-lite-latest",
+      "gemini-3.1-flash-lite"
+    ];
     let rawResponse = "";
 
     for (const modelName of candidateModels) {
-      try {
-        console.log(`[ExpedienteCleaner] Ejecutando depuración con modelo ${modelName}...`);
-        const result = await ai.models.generateContent({
-          model: modelName,
-          contents: [
-            filePart,
-            { text: promptText }
-          ],
-          config: {
-            systemInstruction: systemPrompt,
-            responseMimeType: "application/json",
-            temperature: 0.1
-          }
-        });
+      // Reintento con backoff en caso de spike temporal 503 / 429
+      const maxRetries = 2;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`[ExpedienteCleaner] Ejecutando depuración con modelo ${modelName} (intento ${attempt}/${maxRetries})...`);
+          const result = await ai.models.generateContent({
+            model: modelName,
+            contents: [
+              filePart,
+              { text: promptText }
+            ],
+            config: {
+              systemInstruction: systemPrompt,
+              responseMimeType: "application/json",
+              temperature: 0.1
+            }
+          });
 
-        rawResponse = result.text || "";
-        if (rawResponse.trim()) {
-          console.log(`[ExpedienteCleaner] Respuesta exitosa obtenida con ${modelName}`);
-          break;
+          rawResponse = result.text || "";
+          if (rawResponse.trim()) {
+            console.log(`[ExpedienteCleaner] Respuesta exitosa obtenida con ${modelName}`);
+            break;
+          }
+        } catch (modelErr: any) {
+          const isTransient = modelErr?.status === "UNAVAILABLE" || modelErr?.status === 503 || modelErr?.message?.includes("high demand");
+          console.warn(`[ExpedienteCleaner] Advertencia con modelo ${modelName} (intento ${attempt}):`, modelErr?.message || modelErr);
+          if (isTransient && attempt < maxRetries) {
+            console.log("[ExpedienteCleaner] Demanda alta temporal (503). Esperando 2 segundos antes de reintentar...");
+            await new Promise((r) => setTimeout(r, 2000));
+          } else {
+            break;
+          }
         }
-      } catch (modelErr: any) {
-        console.warn(`[ExpedienteCleaner] Advertencia con modelo ${modelName}:`, modelErr?.message || modelErr);
       }
+      if (rawResponse.trim()) break;
     }
 
     if (!rawResponse.trim()) {
