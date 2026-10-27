@@ -5,6 +5,7 @@ export type { PurifiedDossierResult, PurifiedEvidence, PurifiedContradiction } f
 export { getSamplePurifiedDossier } from "./expedienteCleanerTypes.ts";
 import type { PurifiedDossierResult } from "./expedienteCleanerTypes.ts";
 import { getSamplePurifiedDossier } from "./expedienteCleanerTypes.ts";
+import { safeParseForensicJson } from "./jsonRepair.ts";
 
 export async function processLargeDossier(
   filePath: string,
@@ -131,65 +132,64 @@ REGLA CLAVE DE ATOMIZACIÓN: Extrae de forma exhaustiva TODAS las evidencias sus
       : fileInfo || uploadedFileResult;
 
     const candidateModels = [
+      "gemini-flash-latest",
       "gemini-3.8-flash",
-      "gemini-3.7-flash",
-      "gemini-3.6-flash",
-      "gemini-3.5-flash",
-      "gemini-flash-lite-latest",
       "gemini-3.1-flash-lite"
     ];
     let rawResponse = "";
 
-    for (const modelName of candidateModels) {
-      // Reintento con backoff en caso de spike temporal 503 / 429
-      const maxRetries = 2;
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          console.log(`[ExpedienteCleaner] Ejecutando depuración con modelo ${modelName} (intento ${attempt}/${maxRetries})...`);
-          const result = await ai.models.generateContent({
-            model: modelName,
-            contents: [
-              filePart,
-              { text: promptText }
-            ],
-            config: {
-              systemInstruction: systemPrompt,
-              responseMimeType: "application/json",
-              temperature: 0.1
-            }
-          });
+    for (let mIdx = 0; mIdx < candidateModels.length; mIdx++) {
+      const modelName = candidateModels[mIdx];
+      try {
+        console.log(`[ExpedienteCleaner] Depurando con modelo ${modelName}...`);
+        const result = await ai.models.generateContent({
+          model: modelName,
+          contents: [
+            filePart,
+            { text: promptText }
+          ],
+          config: {
+            systemInstruction: systemPrompt,
+            responseMimeType: "application/json",
+            temperature: 0.1
+          }
+        });
 
-          rawResponse = result.text || "";
-          if (rawResponse.trim()) {
-            console.log(`[ExpedienteCleaner] Respuesta exitosa obtenida con ${modelName}`);
-            break;
-          }
-        } catch (modelErr: any) {
-          const isTransient = modelErr?.status === "UNAVAILABLE" || modelErr?.status === 503 || modelErr?.message?.includes("high demand");
-          console.warn(`[ExpedienteCleaner] Advertencia con modelo ${modelName} (intento ${attempt}):`, modelErr?.message || modelErr);
-          if (isTransient && attempt < maxRetries) {
-            console.log("[ExpedienteCleaner] Demanda alta temporal (503). Esperando 2 segundos antes de reintentar...");
-            await new Promise((r) => setTimeout(r, 2000));
-          } else {
-            break;
-          }
+        rawResponse = result.text || "";
+        if (rawResponse.trim()) {
+          console.log(`[ExpedienteCleaner] ✓ Respuesta exitosa generada con ${modelName}`);
+          break;
+        }
+      } catch (modelErr: any) {
+        const isTransient =
+          modelErr?.status === "UNAVAILABLE" ||
+          modelErr?.status === 503 ||
+          modelErr?.message?.includes("high demand") ||
+          modelErr?.status === 429;
+
+        const nextModel = candidateModels[mIdx + 1];
+        if (isTransient && nextModel) {
+          console.log(
+            `[ExpedienteCleaner] Modelo ${modelName} con alta demanda temporal (503/429). Conmutando de inmediato a ${nextModel}...`
+          );
+        } else if (nextModel) {
+          console.log(
+            `[ExpedienteCleaner] Transición de modelo: ${modelName} no disponible. Probando alternativa ${nextModel}...`
+          );
+        } else {
+          console.log(
+            `[ExpedienteCleaner] Ningún modelo remoto respondió de inmediato. Activando motor forense local...`
+          );
         }
       }
-      if (rawResponse.trim()) break;
     }
 
     if (!rawResponse.trim()) {
       throw new Error("No se obtuvo respuesta de texto de los modelos de Gemini disponibles.");
     }
 
-    let parsed: any = null;
-    const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      parsed = JSON.parse(jsonMatch[0]);
-    } else {
-      parsed = JSON.parse(rawResponse);
-    }
-
+    const fallbackSample = getSamplePurifiedDossier(originalFileName, fileSizeMb);
+    const parsed: any = safeParseForensicJson(rawResponse, fallbackSample);
     const jsonKb = Buffer.byteLength(JSON.stringify(parsed), "utf8") / 1024;
 
     return {

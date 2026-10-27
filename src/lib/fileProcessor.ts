@@ -3,6 +3,7 @@
  * @description Utilidad de pre-procesamiento en el navegador del cliente.
  * Optimizado para el plan gratuito de Vercel (límite de 4.5MB payload y timeout de 10s).
  */
+import { parseAndCleanWhatsAppExport } from "./whatsappParser.ts";
 
 export interface ProcessedFileResult {
   id: string;
@@ -17,6 +18,7 @@ export interface ProcessedFileResult {
   previewUrl?: string;
   sha256: string;
   timestamp_ingesta: string;
+  category?: "chat" | "email" | "contract" | "receipt" | "other";
 }
 
 /**
@@ -203,16 +205,24 @@ export async function processFileForUpload(file: File): Promise<ProcessedFileRes
     file.name.endsWith(".csv") ||
     file.name.endsWith(".md")
   ) {
-    const text = await file.text();
+    const rawText = await file.text();
+    const waResult = parseAndCleanWhatsAppExport(rawText);
+    const cleanedText = waResult.isWhatsApp ? waResult.cleanedText : rawText;
+    const finalSize = cleanedText.length;
+    const noiseReduction = waResult.isWhatsApp && originalSize > finalSize
+      ? Math.round(((originalSize - finalSize) / originalSize) * 100)
+      : 0;
+
     return {
       id,
       name: file.name,
       type: file.type || "text/plain",
-      size: text.length,
+      size: finalSize,
       originalSize,
-      compressionRatio: 0,
-      textContent: text,
+      compressionRatio: noiseReduction,
+      textContent: cleanedText,
       isTextOnly: true,
+      category: waResult.isWhatsApp ? "chat" : undefined,
       sha256,
       timestamp_ingesta
     };

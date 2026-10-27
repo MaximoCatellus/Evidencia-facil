@@ -12,6 +12,7 @@ import { generateTailoredAnalysis, normalizeAnalysisResult, type EvidenceFilePay
 import { processLargeDossier } from "./src/lib/expedienteCleaner.ts";
 import { processRawDossierText, splitPayloadIntoMicroChunks, deduplicateHitos } from "./lib/largeFileProcessor.ts";
 import { groupPagesIntoDocumentUnits, formatDocumentUnitsForGemini } from "./lib/documentChunker.ts";
+import { safeParseForensicJson } from "./lib/jsonRepair.ts";
 
 dotenv.config();
 
@@ -178,11 +179,8 @@ app.post("/api/analyze", async (req, res) => {
 
       const ai = new GoogleGenAI({ apiKey });
       const candidateModels = [
+        "gemini-flash-latest",
         "gemini-3.8-flash",
-        "gemini-3.7-flash",
-        "gemini-3.6-flash",
-        "gemini-3.5-flash",
-        "gemini-flash-lite-latest",
         "gemini-3.1-flash-lite"
       ];
       // Map-Reduce por micro-lotes para garantizar que ningún hito se macro-sintetice
@@ -202,42 +200,56 @@ app.post("/api/analyze", async (req, res) => {
         const chunkText = microChunks[chunkIdx];
         let chunkResponseText = "";
 
-        for (const modelName of candidateModels) {
-          const maxRetries = 2;
-          for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-              const response = await ai.models.generateContent({
-                model: modelName,
-                contents: [
-                  {
-                    role: "user",
-                    parts: [{ text: `Analiza y audita con rigor forense 1:1 el siguiente lote (${chunkIdx + 1}/${microChunks.length}) del expediente documental:\n\n${chunkText}` }]
-                  }
-                ],
-                config: {
-                  systemInstruction: SYSTEM_INSTRUCTION_FORENSIC,
-                  responseMimeType: "application/json",
-                  responseSchema: FORENSIC_JSON_SCHEMA as any,
-                  temperature: 0.1
+        for (let mIdx = 0; mIdx < candidateModels.length; mIdx++) {
+          const modelName = candidateModels[mIdx];
+          try {
+            console.log(`[server.ts /api/analyze] Procesando micro-lote ${chunkIdx + 1}/${microChunks.length} con modelo ${modelName}...`);
+            const response = await ai.models.generateContent({
+              model: modelName,
+              contents: [
+                {
+                  role: "user",
+                  parts: [{ text: `Analiza y audita con rigor forense 1:1 el siguiente lote (${chunkIdx + 1}/${microChunks.length}) del expediente documental:\n\n${chunkText}` }]
                 }
-              });
-              chunkResponseText = response.text ?? "{}";
-              if (chunkResponseText.trim() && chunkResponseText.trim() !== "{}") break;
-            } catch (modelErr: any) {
-              const isTransient = modelErr?.status === "UNAVAILABLE" || modelErr?.status === 503 || modelErr?.message?.includes("high demand");
-              console.warn(`[server.ts /api/analyze] Advertencia en lote ${chunkIdx + 1} con modelo ${modelName} (intento ${attempt}):`, modelErr?.message || modelErr);
-              if (isTransient && attempt < maxRetries) {
-                await new Promise((r) => setTimeout(r, 2000));
-              } else {
-                break;
+              ],
+              config: {
+                systemInstruction: SYSTEM_INSTRUCTION_FORENSIC,
+                responseMimeType: "application/json",
+                responseSchema: FORENSIC_JSON_SCHEMA as any,
+                temperature: 0.1
               }
+            });
+            chunkResponseText = response.text ?? "{}";
+            if (chunkResponseText.trim() && chunkResponseText.trim() !== "{}") {
+              console.log(`[server.ts /api/analyze] ✓ Micro-lote ${chunkIdx + 1} completado con éxito con ${modelName}`);
+              break;
+            }
+          } catch (modelErr: any) {
+            const isTransient =
+              modelErr?.status === "UNAVAILABLE" ||
+              modelErr?.status === 503 ||
+              modelErr?.message?.includes("high demand") ||
+              modelErr?.status === 429;
+
+            const nextModel = candidateModels[mIdx + 1];
+            if (isTransient && nextModel) {
+              console.log(
+                `[server.ts /api/analyze] Modelo ${modelName} con pico de demanda (503/429). Conmutando de inmediato a ${nextModel}...`
+              );
+            } else if (nextModel) {
+              console.log(
+                `[server.ts /api/analyze] Conmutando de ${modelName} hacia modelo de respaldo ${nextModel}...`
+              );
+            } else {
+              console.log(
+                `[server.ts /api/analyze] Modelos remotos ocupados en este lote. Aplicando estructuración heurística local...`
+              );
             }
           }
-          if (chunkResponseText.trim() && chunkResponseText.trim() !== "{}") break;
         }
 
         try {
-          const chunkData = JSON.parse(chunkResponseText || "{}");
+          const chunkData: any = safeParseForensicJson(chunkResponseText, {});
           if (chunkData.expediente && (expedienteName === "Expediente Judicial" || !expedienteName)) {
             expedienteName = chunkData.expediente;
           }

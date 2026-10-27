@@ -243,7 +243,7 @@ export const BayesianGraphView: React.FC<BayesianGraphViewProps> = ({ network: i
                 <Scale className="w-5 h-5" />
               </span>
               <h2 className="text-base font-bold tracking-tight text-white flex items-center gap-2">
-                Evaluación Probatoria con Redes Bayesianas
+                Fuerza Probatoria y Certeza Judicial
                 <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
                   Matemática Determinista Pura
                 </span>
@@ -417,14 +417,20 @@ export const BayesianGraphView: React.FC<BayesianGraphViewProps> = ({ network: i
                 </span>
               </div>
               <div className="bg-white p-2 rounded border border-slate-200">
-                <span className="text-slate-400 block text-[10px] uppercase font-mono">Peso Total (dB)</span>
+                <span className="text-slate-400 block text-[10px] uppercase font-mono">Nivel de Convicción Procesal</span>
                 <span
-                  className={`font-mono font-bold ${
+                  className={`font-mono font-bold text-[11px] ${
                     calculation.peso_probatorio_total_db >= 0 ? "text-emerald-700" : "text-rose-700"
                   }`}
+                  title={`Peso de Turing acumulado: ${calculation.peso_probatorio_total_db >= 0 ? "+" : ""}${calculation.peso_probatorio_total_db.toFixed(1)} dB`}
                 >
-                  {calculation.peso_probatorio_total_db >= 0 ? "+" : ""}
-                  {calculation.peso_probatorio_total_db.toFixed(1)} dB
+                  {calculation.peso_probatorio_total_db >= 20
+                    ? `Concluyente (+${calculation.peso_probatorio_total_db.toFixed(0)} dB)`
+                    : calculation.peso_probatorio_total_db >= 10
+                    ? `Fuerte (+${calculation.peso_probatorio_total_db.toFixed(0)} dB)`
+                    : calculation.peso_probatorio_total_db >= 0
+                    ? `Indicio (+${calculation.peso_probatorio_total_db.toFixed(1)} dB)`
+                    : `Desfavorable (${calculation.peso_probatorio_total_db.toFixed(1)} dB)`}
                 </span>
               </div>
             </div>

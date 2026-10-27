@@ -167,4 +167,4 @@ export interface UploadedFile {
   sha256?: string;
   timestamp_ingesta?: string;
 }
-
+export { sanitizeDictamenData, safeStr } from "../lib/dictamenSanitizer";

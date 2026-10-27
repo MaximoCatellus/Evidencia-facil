@@ -54,11 +54,15 @@ export interface DictamenMetadata {
  * Aplica programación defensiva exhaustiva (?? y ?.) eliminando cualquier posibilidad
  * de renderizar la palabra "undefined" o dejar el cálculo bayesiano estancado en 50% / 0 dB.
  */
+import { sanitizeDictamenData, safeStr } from "./dictamenSanitizer.ts";
+
 export function generateDictamenJudicial(
-  analysis: AnalysisResult | null | undefined,
+  rawAnalysis: AnalysisResult | null | undefined,
   files: UploadedFile[] = [],
   meta: DictamenMetadata = {}
 ): string {
+  const fileNames = files.map((f) => f.name);
+  const analysis = sanitizeDictamenData(rawAnalysis, fileNames);
   const defaultFileName = files[0]?.name ?? "Expediente_Digital.pdf";
   const defaultTribunal = meta.tribunal ?? "Tribunal Competente / Juzgado de Letras";
   const defaultCausa = meta.causaNumero ?? `EXP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;

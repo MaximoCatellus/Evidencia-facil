@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { PurifiedDossierResult, PurifiedEvidence, PurifiedContradiction } from "../lib/expedienteCleanerTypes";
 import { getSamplePurifiedDossier } from "../lib/expedienteCleanerTypes";
+import { safeParseForensicJson } from "../lib/jsonRepair";
 
 interface ExpedienteCleanerTabProps {
   onTransferToAnalysis: (purifiedData: PurifiedDossierResult) => void;
@@ -114,18 +115,18 @@ export const ExpedienteCleanerTab: React.FC<ExpedienteCleanerTabProps> = ({
         }
 
         const responseText = await response.text();
-        let data: any = null;
-        let isInvalidResponse = false;
-
-        try {
-          data = JSON.parse(responseText);
-        } catch {
-          isInvalidResponse = true;
-        }
+        const data: any = safeParseForensicJson(responseText, null);
+        const isHtml = responseText.trim().startsWith("<") || responseText.includes("<!DOCTYPE html>");
 
         // Si el servidor devolvió HTML (gateway proxy, timeout, etc.) o falló la API
-        if (isInvalidResponse || !response.ok || !data?.success) {
-          console.warn(`[ExpedienteCleaner] Servidor devolvió respuesta no JSON (Status ${response.status}). Activando motor procesal local...`);
+        if (isHtml || !response.ok || !data?.success) {
+          if (isHtml) {
+            console.warn(`[ExpedienteCleaner] El servidor devolvió una página HTML (Status ${response.status}) debido a un timeout de proxy en red. Activando motor forense local...`);
+          } else if (data?.error) {
+            console.warn(`[ExpedienteCleaner] Error en la respuesta del servidor (Status ${response.status}): ${data.error}. Activando motor forense local...`);
+          } else {
+            console.warn(`[ExpedienteCleaner] Respuesta no exitosa (Status ${response.status}). Activando motor forense local...`);
+          }
           setUploadingChunkInfo("Activando motor procesal local para desmalezar el expediente...");
           const sizeMb = file.size / (1024 * 1024);
           finalData = getSamplePurifiedDossier(file.name, sizeMb);

@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { type EvidenceFilePayload, sanitizePromptInput, generateTailoredAnalysis, normalizeAnalysisResult } from "./tailoredAnalysis.ts";
 import { SYSTEM_INSTRUCTION_FORENSIC, FORENSIC_JSON_SCHEMA } from "../../lib/prompts/forensicPrompt.ts";
+import { safeParseForensicJson } from "./jsonRepair.ts";
 
 export const analysisResponseSchema = {
   type: Type.OBJECT,
@@ -309,11 +310,12 @@ Debes responder ÚNICAMENTE con un objeto JSON válido (sin bloques de código m
 
         const outputText = response.text;
         if (outputText) {
-          const cleanJson = outputText.trim().replace(/^```json/i, "").replace(/```$/i, "").trim();
-          const parsed = JSON.parse(cleanJson);
-          structuredData = normalizeAnalysisResult(parsed, files);
-          console.log(`[EvidenciaFácil] Éxito pericial con ${modelName}. Título:`, structuredData.resumen_caso?.titulo_caso);
-          break;
+          const parsed = safeParseForensicJson(outputText, null);
+          if (parsed) {
+            structuredData = normalizeAnalysisResult(parsed, files);
+            console.log(`[EvidenciaFácil] Éxito pericial con ${modelName}. Título:`, structuredData.resumen_caso?.titulo_caso);
+            break;
+          }
         }
       } catch (callErr: any) {
         console.warn(`[EvidenciaFácil] Error en intento ${attempt} con ${modelName}:`, callErr?.message?.slice(0, 160) || callErr);

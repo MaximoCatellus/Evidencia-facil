@@ -702,7 +702,7 @@ export default function App() {
                 title="Evaluación objetiva de verosimilitud de hipótesis procesales"
               >
                 <Scale className="w-4 h-4 text-blue-600" />
-                <span>5. Solidez Probatoria (dB Turing)</span>
+                <span>5. Fuerza Probatoria y Certeza Judicial</span>
               </button>
 
               <button

@@ -309,8 +309,8 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                 1
               </span>
               <div>
-                <p className="text-xs font-bold text-slate-800">Sube tus pruebas</p>
-                <p className="text-[11px] text-slate-500 leading-tight">Chats de WhatsApp, contratos o fotos.</p>
+                <p className="text-xs font-bold text-slate-800">1. Carga</p>
+                <p className="text-[11px] text-slate-500 leading-tight">Chats de WhatsApp, contratos en PDF o fotos.</p>
               </div>
             </div>
 
@@ -319,8 +319,8 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                 2
               </span>
               <div>
-                <p className="text-xs font-bold text-slate-800">La IA audita los hechos</p>
-                <p className="text-[11px] text-slate-500 leading-tight">Extrae fechas, citas textuales y contradicciones.</p>
+                <p className="text-xs font-bold text-slate-800">2. Audita</p>
+                <p className="text-[11px] text-slate-500 leading-tight">Extracción forense 1:1 de hechos, citas y contradicciones.</p>
               </div>
             </div>
 
@@ -329,11 +329,31 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                 3
               </span>
               <div>
-                <p className="text-xs font-bold text-slate-800">Análisis de pruebas</p>
-                <p className="text-[11px] text-slate-500 leading-tight">Guía organizada y cronológica para preparar tu caso.</p>
+                <p className="text-xs font-bold text-slate-800">3. Descarga</p>
+                <p className="text-[11px] text-slate-500 leading-tight">Dictamen Pericial Judicial listo para presentar en juicio.</p>
               </div>
             </div>
           </div>
+
+          {/* Quick-Action Button in Empty State */}
+          {files.length === 0 && (
+            <div className="mt-4 pt-3 border-t border-slate-200/60 w-full flex flex-col items-center">
+              <span className="text-[11px] text-slate-500 mb-2">
+                ¿No tienes documentos a la mano? Explora la plataforma con un caso precargado:
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLoadSample("caso-laboral");
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold rounded-lg text-xs shadow-xs hover:shadow transition-all inline-flex items-center gap-2 cursor-pointer border border-amber-400"
+              >
+                <Sparkles className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
+                <span>Probar Caso Demo Laboral (1 Clic)</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

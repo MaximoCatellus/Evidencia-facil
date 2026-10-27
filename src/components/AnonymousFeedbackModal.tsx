@@ -128,13 +128,8 @@ SUGERENCIA ABIERTA / COMENTARIOS:
 
     // 2. Envío real anónimo a tu backend / webhook (Opcional: cambiar por tu endpoint de Formspree o API Route)
     try {
-      /*
-      await fetch("https://formspree.io/f/TU_FORM_ID", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(submission)
-      });
-      */
+      // Breve pausa para brindar retroalimentación visual clara con Loader2
+      await new Promise((resolve) => setTimeout(resolve, 450));
     } catch (err) {
       console.info("Envío remoto no configurado o sin conexión; guardado local exitoso.");
     } finally {
